@@ -1383,13 +1383,13 @@
         <div class="fx-row2" style="margin-bottom:12px;">
           <select class="fx-select" id="fx-driver-filter">
             <option value="">Todos os motoristas</option>
-            ${state.drivers.map(d=>`<option value="${d}" ${state.selectedDriverFilter===d?'selected':''}>${d}</option>`).join("")}
+            ${makeOptions(state.drivers, state.selectedDriverFilter)}
           </select>
           <button class="fx-add-btn" id="fx-add-diaria-btn" style="margin-bottom:0;">+ Nova diária</button>
         </div>` : `
         <div class="fx-row2" style="margin-bottom:12px;">
           <select class="fx-select" id="fx-driver-filter">
-            ${state.drivers.map(d=>`<option value="${d}" ${(driver||state.drivers[0])===d?'selected':''}>${d}</option>`).join("")}
+            ${makeOptions(state.drivers, driver||state.drivers[0])}
           </select>
           <div></div>
         </div>`}
@@ -1397,25 +1397,7 @@
         ${list.length === 0 ? `
           <div class="fx-empty"><div class="fx-empty-icon">📋</div>
           <div class="fx-empty-text">Nenhuma diária registrada ainda.</div></div>` :
-          list.map(d => `
-            <div class="fx-expense-card" data-diaria-id="${d.id}">
-              <div class="fx-expense-top">
-                <div>
-                  <div class="fx-expense-name">${escapeHtml(d.motoristaNome||"")}</div>
-                  <div class="fx-expense-meta">${fmtDateShort(d.data)}${d.descricao?' · '+escapeHtml(d.descricao):''}</div>
-                </div>
-                <div style="text-align:right;">
-                  <div class="fx-expense-value fluxo-num">${fmtMoney(d.valor)}</div>
-                  <div class="fx-tag ${d.pago?'paid':'unpaid'}" style="display:inline-block;margin-top:4px;">${d.pago?'✓ Pago':'⏱ Pendente'}</div>
-                </div>
-              </div>
-              ${isFinance ? `
-              <div class="fx-entry-actions">
-                <button class="fx-icon-btn fx-diaria-pago" data-id="${d.id}">${d.pago?'Marcar pendente':'Marcar pago'}</button>
-                <button class="fx-icon-btn fx-diaria-edit" data-id="${d.id}">Editar</button>
-                <button class="fx-icon-btn danger fx-diaria-del" data-id="${d.id}">Excluir</button>
-              </div>` : ""}
-            </div>`).join("")}
+          list.map(d => renderDiariaCard(d, isFinance)).join("")}
       </div>`;
   }
 
@@ -1775,17 +1757,7 @@
         <div class="fx-section-head" style="margin-top:20px;">
           <div class="fx-section-title">Mês a mês</div>
         </div>
-        ${allMonths.map(m => m.totalServicos > 0 || m.totalDespesas > 0 ? `
-          <div class="fx-expense-card" style="margin-bottom:8px;">
-            <div class="fx-expense-top">
-              <div><div class="fx-expense-name">${MONTHS_FULL[m.i]}</div>
-              <div class="fx-expense-meta">${m.count} serviço${m.count === 1 ? '' : 's'}</div></div>
-              <div style="text-align:right;">
-                <div class="fx-expense-value" style="color:${m.liquido >= 0 ? 'var(--accent)' : 'var(--warn)'};">${fmtMoney(m.liquido)}</div>
-                <div style="font-size:10px;color:var(--text-dim);">líquido</div>
-              </div>
-            </div>
-          </div>` : "").join("")}
+        ${renderAnnualMonthList(allMonths)}
       </div>`;
   }
 
@@ -1843,8 +1815,196 @@
     showToast("Despesa fixa removida.");
   }
 
+  function makeOptions(arr, selected) {
+    return arr.map(function(v) {
+      return '<option value="' + v + '"' + (v === selected ? ' selected' : '') + '>' + v + '</option>';
+    }).join("");
+  }
+
+  function makeOptionsEsc(arr, selected) {
+    return arr.map(function(v) {
+      return '<option value="' + escapeAttr(v) + '"' + (v === selected ? ' selected' : '') + '>' + escapeHtml(v) + '</option>';
+    }).join("");
+  }
+
+  function modeBadgeHtml(isFinance) {
+    var cls = isFinance ? "fx-mode-badge financeiro" : "fx-mode-badge";
+    var label = isFinance ? "\u2605 Financeiro" : "Modo motorista";
+    return '<button class="' + cls + '" id="fx-mode-btn">' + label + '</button>';
+  }
+
+  function financeTabsHtml() {
+    var tabs = [
+      ["servicos","Servi\u00e7os"], ["despesas","Despesas"], ["relatorio","Relat\u00f3rio"],
+      ["diarias","Di\u00e1rias"], ["combustivel","\u26fd Comb."], ["importar","Importar"]
+    ];
+    var btns = tabs.map(function(t) {
+      var cls = state.activeTab === t[0] ? "fx-tab active" : "fx-tab";
+      return '<button class="' + cls + '" data-tab="' + t[0] + '">' + t[1] + '</button>';
+    }).join("");
+    return '<div class="fx-tabs" id="fx-tabs">' + btns + '</div>' +
+           '<div class="fx-months" id="fx-months"></div>';
+  }
+
+  function monthBtnHtml(m, i) {
+    var cls = i === state.activeMonth ? "fx-month-btn active" : "fx-month-btn";
+    return '<button class="' + cls + '" data-month="' + i + '">' + m + '</button>';
+  }
+
+  function pagoTagHtml(pago) {
+    var cls = pago ? "fx-tag paid" : "fx-tag unpaid";
+    var label = pago ? "\u2713 Pago" : "\u23f1 Pendente";
+    return '<span class="' + cls + '">' + label + '</span>';
+  }
+
   function badgeTag(text) {
     return '<span style="font-size:9px;color:var(--accent);background:var(--accent-dim);padding:1px 5px;border-radius:4px;margin-left:4px;">' + text + '</span>';
+  }
+
+  function renderFinanceBody(t, list) {
+    var liquidoColor = t.liquido >= 0 ? "var(--accent)" : "var(--warn)";
+    var html = "";
+
+    // Net card
+    html += '<div class="fx-net-card">' +
+      '<div><div class="fx-net-label">L\u00edquido de ' + MONTHS_FULL[state.activeMonth] + '</div></div>' +
+      '<div class="fx-net-value fluxo-num" style="color:' + liquidoColor + '">' + fmtMoney(t.liquido) + '</div>' +
+      '</div>';
+
+    // Totals grid
+    html += '<div class="fx-totals">' +
+      '<div class="fx-total-card"><div class="fx-total-label">Total de Servi\u00e7os</div>' +
+      '<div class="fx-total-value green fluxo-num">' + fmtMoney(t.totalServicos) + '</div>' +
+      '<div class="fx-total-sub">' + t.count + " servi\u00e7o" + (t.count === 1 ? "" : "s") + '</div></div>' +
+
+      '<div class="fx-total-card"><div class="fx-total-label">Total Motorista ' + (t.usandoDiariasAba ? badgeTag("via di\u00e1rias") : "") + '</div>' +
+      '<div class="fx-total-value gold fluxo-num">' + fmtMoney(t.totalMotorista) + '</div></div>' +
+
+      '<div class="fx-total-card"><div class="fx-total-label">Total Manuten\u00e7\u00e3o</div>' +
+      '<div class="fx-total-value red fluxo-num">' + fmtMoney(t.totalManutencao) + '</div></div>' +
+
+      '<div class="fx-total-card"><div class="fx-total-label">Total Combust\u00edvel ' + (t.usandoCombAba ? badgeTag("via comb.") : "") + '</div>' +
+      '<div class="fx-total-value red fluxo-num">' + fmtMoney(t.totalCombustivel) + '</div></div>' +
+
+      '<div class="fx-total-card"><div class="fx-total-label">Despesas avulsas</div>' +
+      '<div class="fx-total-value red fluxo-num">' + fmtMoney(t.totalAvulsos) + '</div>' +
+      '<div class="fx-total-sub">' + t.avCount + " lan\u00e7amento" + (t.avCount === 1 ? "" : "s") + '</div></div>' +
+
+      '<div class="fx-total-card"><div class="fx-total-label">Despesas fixas</div>' +
+      '<div class="fx-total-value red fluxo-num">' + fmtMoney(t.totalFixas) + '</div>' +
+      '<div class="fx-total-sub">' + state.fixedExpenses.length + " item" + (state.fixedExpenses.length === 1 ? "" : "s") + '</div></div>' +
+
+      '<div class="fx-total-card wide"><div class="fx-total-label">Recebido \u00d7 Pendente</div>' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+      '<div class="fx-total-value green fluxo-num" style="font-size:17px;">' + fmtMoney(t.totalPago) + ' <span style="font-size:10px;color:var(--text-dim);font-weight:600;">recebido</span></div>' +
+      '<div class="fx-total-value red fluxo-num" style="font-size:17px;">' + fmtMoney(t.totalPendente) + ' <span style="font-size:10px;color:var(--text-dim);font-weight:600;">pendente</span></div>' +
+      '</div></div>' +
+      '</div>';
+
+    // Card alerts
+    html += cardAlertHtml();
+
+    // Tab content
+    var tab = state.activeTab;
+    if (tab === "combustivel") {
+      html += renderCombustivelTab();
+    } else if (tab === "diarias") {
+      html += renderDiariasTab(true);
+    } else if (tab === "relatorio") {
+      html += renderAnnualReport(t);
+    } else if (tab === "importar") {
+      html += renderImportTab();
+    } else if (tab === "servicos") {
+      html += '<div class="fx-row2" style="margin-bottom:12px;">' +
+        '<button class="fx-add-btn" id="fx-drivers-btn" style="margin-bottom:0;">Motoristas (' + state.drivers.length + ')</button>' +
+        '<button class="fx-add-btn" id="fx-export-btn" style="margin-bottom:0;">\u2b07 Exportar m\u00eas</button>' +
+        '</div>' +
+        '<button class="fx-add-btn" id="fx-add-btn">+ Novo lan\u00e7amento</button>' +
+        '<div class="fx-section-head"><div class="fx-section-title">Lan\u00e7amentos de ' + MONTHS_FULL[state.activeMonth] + '</div>' +
+        '<div class="fx-count-badge">' + list.length + '</div></div>' +
+        '<div id="fx-entries-list"></div>';
+    } else {
+      // despesas tab
+      html += '<div class="fx-row2" style="margin-bottom:12px;">' +
+        '<button class="fx-add-btn" id="fx-fixed-btn" style="margin-bottom:0;">\u2699 Fixas (' + state.fixedExpenses.length + ')</button>' +
+        '<button class="fx-add-btn" id="fx-add-expense-btn" style="margin-bottom:0;">+ Nova despesa</button>' +
+        '</div>' +
+        '<div class="fx-section-head"><div class="fx-section-title">Fixas mensais</div>' +
+        '<div class="fx-count-badge">' + state.fixedExpenses.length + '</div></div>' +
+        '<div id="fx-fixed-list">' + renderFixedList() + '</div>' +
+        '<div class="fx-section-head" style="margin-top:24px;"><div class="fx-section-title">Avulsas de ' + MONTHS_FULL[state.activeMonth] + '</div>' +
+        '<div class="fx-count-badge">' + t.avCount + '</div></div>' +
+        '<div id="fx-avulso-list"></div>';
+    }
+    return html;
+  }
+
+  function renderDriverModeBody() {
+    var tabServicos = state.activeTab === "servicos" ? "active" : "";
+    var tabDiarias = state.activeTab === "diarias" ? "active" : "";
+    var tabsHtml = '<div class="fx-tabs" style="padding:0 0 10px 0;">' +
+      '<button class="fx-tab ' + tabServicos + '" data-tab="servicos">Registrar</button>' +
+      '<button class="fx-tab ' + tabDiarias + '" data-tab="diarias">Minhas diárias</button>' +
+      '</div>';
+    if (state.activeTab === "diarias") {
+      return tabsHtml + renderDiariasTab(false);
+    }
+    return tabsHtml +
+      '<div class="fx-driver-welcome">' +
+      '<div class="fx-driver-welcome-icon">🚚</div>' +
+      '<div class="fx-driver-welcome-title">Registrar serviço</div>' +
+      '<div class="fx-driver-welcome-text">Preencha os dados do serviço que você executou. O financeiro cuida do resto.</div>' +
+      '</div>' +
+      '<button class="fx-add-btn fx-add-btn-big" id="fx-add-btn">+ Novo lançamento</button>';
+  }
+
+  function renderFixedList() {
+    if (state.fixedExpenses.length === 0) {
+      return '<div class="fx-empty"><div class="fx-empty-icon">📌</div><div class="fx-empty-text">Nenhuma despesa fixa cadastrada.<br>Toque em "⚙ Fixas" para adicionar.</div></div>';
+    }
+    return state.fixedExpenses.map(function(f) {
+      return '<div class="fx-expense-card" data-fixed-id="' + f.id + '">' +
+        '<div class="fx-expense-top">' +
+        '<div><div class="fx-expense-name">' + escapeHtml(f.nome) + '</div>' +
+        '<div class="fx-expense-meta">Todo dia ' + (f.dia || "1") + ' · ' + escapeHtml(f.formaPagamento || "") + '</div></div>' +
+        '<div class="fx-expense-value">' + fmtMoney(f.valor) + '</div>' +
+        '</div></div>';
+    }).join("");
+  }
+
+  function renderAnnualMonthList(allMonths) {
+    return allMonths.map(function(m) {
+      if (m.totalServicos === 0 && m.totalDespesas === 0) return "";
+      var color = m.liquido >= 0 ? "var(--accent)" : "var(--warn)";
+      return '<div class="fx-expense-card" style="margin-bottom:8px;">' +
+        '<div class="fx-expense-top">' +
+        '<div><div class="fx-expense-name">' + MONTHS_FULL[m.i] + '</div>' +
+        '<div class="fx-expense-meta">' + m.count + " serviço" + (m.count === 1 ? "" : "s") + '</div></div>' +
+        '<div style="text-align:right;">' +
+        '<div class="fx-expense-value" style="color:' + color + ';">' + fmtMoney(m.liquido) + '</div>' +
+        '<div style="font-size:10px;color:var(--text-dim);">líquido</div>' +
+        '</div></div></div>';
+    }).join("");
+  }
+
+  function renderDiariaCard(d, isFinance) {
+    var pagoClass = d.pago ? "paid" : "unpaid";
+    var pagoLabel = d.pago ? "✓ Pago" : "⏱ Pendente";
+    var actions = isFinance
+      ? '<div class="fx-entry-actions">' +
+        '<button class="fx-icon-btn fx-diaria-pago" data-id="' + d.id + '">' + (d.pago ? "Marcar pendente" : "Marcar pago") + '</button>' +
+        '<button class="fx-icon-btn fx-diaria-edit" data-id="' + d.id + '">Editar</button>' +
+        '<button class="fx-icon-btn danger fx-diaria-del" data-id="' + d.id + '">Excluir</button>' +
+        '</div>'
+      : "";
+    return '<div class="fx-expense-card" data-diaria-id="' + d.id + '">' +
+      '<div class="fx-expense-top">' +
+      '<div><div class="fx-expense-name">' + escapeHtml(d.motoristaNome || "") + '</div>' +
+      '<div class="fx-expense-meta">' + fmtDateShort(d.data) + (d.descricao ? " · " + escapeHtml(d.descricao) : "") + '</div></div>' +
+      '<div style="text-align:right;">' +
+      '<div class="fx-expense-value fluxo-num">' + fmtMoney(d.valor) + '</div>' +
+      '<div class="fx-tag ' + pagoClass + '" style="display:inline-block;margin-top:4px;">' + pagoLabel + '</div>' +
+      '</div></div>' + actions + '</div>';
   }
 
   /* ---------------- Render ---------------- */
@@ -1864,121 +2024,16 @@
       <div class="fx-header">
         <div class="fx-header-row">
           <div class="fx-title">Fluxo Mensal · <b>${YEAR}</b></div>
-          <button class="fx-mode-badge ${isFinance ? 'financeiro' : ''}" id="fx-mode-btn">${isFinance ? '★ Financeiro' : 'Modo motorista'}</button>
+          ${modeBadgeHtml(isFinance)}
         </div>
-        ${isFinance ? `
-        <div class="fx-tabs" id="fx-tabs">
-          <button class="fx-tab ${state.activeTab === 'servicos' ? 'active' : ''}" data-tab="servicos">Serviços</button>
-          <button class="fx-tab ${state.activeTab === 'despesas' ? 'active' : ''}" data-tab="despesas">Despesas</button>
-          <button class="fx-tab ${state.activeTab === 'relatorio' ? 'active' : ''}" data-tab="relatorio">Relatório</button>
-          <button class="fx-tab ${state.activeTab === 'diarias' ? 'active' : ''}" data-tab="diarias">Diárias</button>
-          <button class="fx-tab ${state.activeTab === 'combustivel' ? 'active' : ''}" data-tab="combustivel">⛽ Comb.</button>
-          <button class="fx-tab ${state.activeTab === 'importar' ? 'active' : ''}" data-tab="importar">Importar</button>
-        </div>
-        <div class="fx-months" id="fx-months"></div>` : ""}
+        ${isFinance ? financeTabsHtml() : ""}
       </div>
 
       <div class="fx-body">
-        ${!isFinance ? `
-        <div class="fx-tabs" style="padding:0 0 10px 0;">
-          <button class="fx-tab ${state.activeTab==='servicos'?'active':''}" data-tab="servicos">Registrar</button>
-          <button class="fx-tab ${state.activeTab==='diarias'?'active':''}" data-tab="diarias">Minhas diárias</button>
-        </div>
-        ${state.activeTab==='diarias' ? renderDiariasTab(false) : `
-        <div class="fx-driver-welcome">
-          <div class="fx-driver-welcome-icon">🚚</div>
-          <div class="fx-driver-welcome-title">Registrar serviço</div>
-          <div class="fx-driver-welcome-text">Preencha os dados do serviço que você executou. O financeiro cuida do resto.</div>
-        </div>
-        <button class="fx-add-btn fx-add-btn-big" id="fx-add-btn">+ Novo lançamento</button>`}
-        ` : `
-        <div class="fx-net-card">
-          <div><div class="fx-net-label">Líquido de ${MONTHS_FULL[state.activeMonth]}</div></div>
-          <div class="fx-net-value fluxo-num" style="color:${t.liquido >= 0 ? 'var(--accent)' : 'var(--warn)'}">${fmtMoney(t.liquido)}</div>
-        </div>
-
-        <div class="fx-totals">
-          <div class="fx-total-card">
-            <div class="fx-total-label">Total de Serviços</div>
-            <div class="fx-total-value green fluxo-num">${fmtMoney(t.totalServicos)}</div>
-            <div class="fx-total-sub">${t.count} serviço${t.count === 1 ? '' : 's'}</div>
-          </div>
-          <div class="fx-total-card">
-            <div class="fx-total-label">Total Motorista ${t.usandoDiariasAba ? badgeTag("via diárias") : ""}</div>
-            <div class="fx-total-value gold fluxo-num">${fmtMoney(t.totalMotorista)}</div>
-          </div>
-          <div class="fx-total-card">
-            <div class="fx-total-label">Total Manutenção</div>
-            <div class="fx-total-value red fluxo-num">${fmtMoney(t.totalManutencao)}</div>
-          </div>
-          <div class="fx-total-card">
-            <div class="fx-total-label">Total Combustível ${t.usandoCombAba ? badgeTag("via comb.") : ""}</div>
-            <div class="fx-total-value red fluxo-num">${fmtMoney(t.totalCombustivel)}</div>
-          </div>
-          <div class="fx-total-card">
-            <div class="fx-total-label">Despesas avulsas</div>
-            <div class="fx-total-value red fluxo-num">${fmtMoney(t.totalAvulsos)}</div>
-            <div class="fx-total-sub">${t.avCount} lançamento${t.avCount === 1 ? '' : 's'}</div>
-          </div>
-          <div class="fx-total-card">
-            <div class="fx-total-label">Despesas fixas</div>
-            <div class="fx-total-value red fluxo-num">${fmtMoney(t.totalFixas)}</div>
-            <div class="fx-total-sub">${state.fixedExpenses.length} item${state.fixedExpenses.length === 1 ? '' : 's'}</div>
-          </div>
-          <div class="fx-total-card wide">
-            <div class="fx-total-label">Recebido × Pendente</div>
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <div class="fx-total-value green fluxo-num" style="font-size:17px;">${fmtMoney(t.totalPago)} <span style="font-size:10px; color:var(--text-dim); font-weight:600;">recebido</span></div>
-              <div class="fx-total-value red fluxo-num" style="font-size:17px;">${fmtMoney(t.totalPendente)} <span style="font-size:10px; color:var(--text-dim); font-weight:600;">pendente</span></div>
-            </div>
-          </div>
-        </div>
-
-        ${cardAlertHtml()}
-        ${state.activeTab === 'combustivel' ? renderCombustivelTab() : state.activeTab === 'diarias' ? renderDiariasTab(true) : state.activeTab === 'relatorio' ? renderAnnualReport(t) : state.activeTab === 'importar' ? renderImportTab() : state.activeTab === 'servicos' ? `
-        <div class="fx-row2" style="margin-bottom:12px;">
-          <button class="fx-add-btn" id="fx-drivers-btn" style="margin-bottom:0;">Motoristas (${state.drivers.length})</button>
-          <button class="fx-add-btn" id="fx-export-btn" style="margin-bottom:0;">⬇ Exportar mês</button>
-        </div>
-        <button class="fx-add-btn" id="fx-add-btn">+ Novo lançamento</button>
-        <div class="fx-section-head">
-          <div class="fx-section-title">Lançamentos de ${MONTHS_FULL[state.activeMonth]}</div>
-          <div class="fx-count-badge">${list.length}</div>
-        </div>
-        <div id="fx-entries-list"></div>
-        ` : `
-        <div class="fx-row2" style="margin-bottom:12px;">
-          <button class="fx-add-btn" id="fx-fixed-btn" style="margin-bottom:0;">⚙ Fixas (${state.fixedExpenses.length})</button>
-          <button class="fx-add-btn" id="fx-add-expense-btn" style="margin-bottom:0;">+ Nova despesa</button>
-        </div>
-
-        <div class="fx-section-head">
-          <div class="fx-section-title">Fixas mensais</div>
-          <div class="fx-count-badge">${state.fixedExpenses.length}</div>
-        </div>
-        <div id="fx-fixed-list">
-          ${state.fixedExpenses.length === 0 ? '<div class="fx-empty"><div class="fx-empty-icon">📌</div><div class="fx-empty-text">Nenhuma despesa fixa cadastrada.<br>Toque em "⚙ Fixas" para adicionar.</div></div>' :
-            state.fixedExpenses.map(f => `
-              <div class="fx-expense-card" data-fixed-id="${f.id}">
-                <div class="fx-expense-top">
-                  <div>
-                    <div class="fx-expense-name">${escapeHtml(f.nome)}</div>
-                    <div class="fx-expense-meta">Todo dia ${f.dia || "1"} · ${escapeHtml(f.formaPagamento || "")}</div>
-                  </div>
-                  <div class="fx-expense-value">${fmtMoney(f.valor)}</div>
-                </div>
-              </div>`).join("")}
-        </div>
-
-        <div class="fx-section-head" style="margin-top:24px;">
-          <div class="fx-section-title">Avulsas de ${MONTHS_FULL[state.activeMonth]}</div>
-          <div class="fx-count-badge">${t.avCount}</div>
-        </div>
-        <div id="fx-avulso-list"></div>
-        `}
+        ${!isFinance ? renderDriverModeBody() : renderFinanceBody(t, list)}
       </div>
 
-      ${state.toast ? `<div class="fx-toast">${state.toast}</div>` : ""}
+      ${state.toast ? '<div class="fx-toast">' + state.toast + '</div>' : ""}
       <div id="fx-modal-container"></div>
     `;
 
@@ -2052,7 +2107,7 @@
 
       const monthsEl = document.getElementById("fx-months");
       monthsEl.innerHTML = MONTHS.map((m, i) =>
-        `<button class="fx-month-btn ${i === state.activeMonth ? 'active' : ''}" data-month="${i}">${m}</button>`
+        monthBtnHtml(m, i)
       ).join("");
       monthsEl.querySelectorAll(".fx-month-btn").forEach(btn => {
         btn.addEventListener("click", () => { state.activeMonth = parseInt(btn.dataset.month, 10); render(); });
@@ -2210,7 +2265,7 @@
         </div>
         ${e.servico ? `<div class="fx-entry-desc">${escapeHtml(e.servico)}</div>` : ""}
         <div class="fx-tags">
-          ${needsFill ? `<span class="fx-tag unpaid">⏱ Aguardando valor</span>` : `<span class="fx-tag ${e.pago ? 'paid' : 'unpaid'}">${e.pago ? '✓ Pago' : '⏱ Pendente'}</span>`}
+          ${needsFill ? '<span class="fx-tag unpaid">⏱ Aguardando valor</span>' : pagoTagHtml(e.pago)}
           ${e.formaPagamento ? `<span class="fx-tag">${escapeHtml(e.formaPagamento)}</span>` : ""}
           ${e.motoristaNome ? `<span class="fx-tag driver">${escapeHtml(e.motoristaNome)}</span>` : ""}
         </div>
@@ -2268,7 +2323,7 @@
             <label class="fx-field-label">Motorista</label>
             ${state.drivers.length > 0 ? `
               <select class="fx-select" id="fld-motorista">
-                ${state.drivers.map(d => `<option value="${escapeAttr(d)}" ${f.motoristaNome === d ? 'selected' : ''}>${escapeHtml(d)}</option>`).join("")}
+                ${makeOptionsEsc(state.drivers, f.motoristaNome)}
               </select>
             ` : `
               <div class="fx-locked-note">Nenhum motorista cadastrado ainda. ${isFinance ? 'Use "Gerenciar motoristas" para adicionar.' : 'Peça ao gestor para cadastrar os motoristas.'}</div>
@@ -2278,7 +2333,7 @@
           <div class="fx-field">
             <label class="fx-field-label">Serviço executado</label>
             <select class="fx-select" id="fld-servico">
-              ${SERVICES.map(s => `<option value="${escapeAttr(s)}" ${f.servico === s ? 'selected' : ''}>${escapeHtml(s)}</option>`).join("")}
+              ${makeOptionsEsc(SERVICES, f.servico)}
             </select>
           </div>
           ${f.servico === "Outro" ? `
@@ -2313,7 +2368,7 @@
             <div class="fx-field">
               <label class="fx-field-label">Forma de pagamento</label>
               <select class="fx-select" id="fld-forma">
-                ${PAY_METHODS.map(m => `<option value="${m}" ${f.formaPagamento === m ? 'selected' : ''}>${m}</option>`).join("")}
+                ${makeOptions(PAY_METHODS, f.formaPagamento)}
               </select>
             </div>
             <div class="fx-field">
@@ -2499,7 +2554,7 @@
           <div class="fx-field">
             <label class="fx-field-label">Categoria</label>
             <select class="fx-select" id="exp-cat">
-              ${EXPENSE_CATS.map(cat => `<option value="${escapeAttr(cat)}" ${f.categoria === cat ? 'selected' : ''}>${escapeHtml(cat)}</option>`).join("")}
+              ${makeOptionsEsc(EXPENSE_CATS, f.categoria)}
             </select>
           </div>
           <div class="fx-field">
@@ -2509,7 +2564,7 @@
           <div class="fx-field">
             <label class="fx-field-label">Forma de pagamento</label>
             <select class="fx-select" id="exp-pag">
-              ${PAY.map(p => `<option value="${p}" ${f.formaPagamento === p ? 'selected' : ''}>${p}</option>`).join("")}
+              ${makeOptions(PAY, f.formaPagamento)}
             </select>
           </div>
           ${(f.formaPagamento === "Cartão de crédito") ? `
@@ -2593,7 +2648,7 @@
           <div class="fx-field">
             <label class="fx-field-label">Forma de pagamento</label>
             <select class="fx-select" id="fx-fm-pag">
-              ${PAY.map(p => `<option value="${p}" ${f.formaPagamento === p ? 'selected' : ''}>${p}</option>`).join("")}
+              ${makeOptions(PAY, f.formaPagamento)}
             </select>
           </div>
           <button class="fx-save-btn" id="fx-fm-save">Adicionar despesa fixa</button>
@@ -2652,14 +2707,14 @@
             <label class="fx-field-label">Motorista</label>
             <select class="fx-select" id="comb-motorista">
               <option value="">Sem motorista</option>
-              ${state.drivers.map(d=>`<option value="${d}" ${f.motoristaNome===d?'selected':''}>${d}</option>`).join("")}
+              ${makeOptions(state.drivers, f.motoristaNome)}
             </select>
           </div>` : ""}
 
           <div class="fx-field">
             <label class="fx-field-label">Forma de pagamento</label>
             <select class="fx-select" id="comb-pag">
-              ${PAY.map(p=>`<option value="${p}" ${f.formaPagamento===p?'selected':''}>${p}</option>`).join("")}
+              ${makeOptions(PAY, f.formaPagamento)}
             </select>
           </div>
 
@@ -2718,7 +2773,7 @@
           <div class="fx-field">
             <label class="fx-field-label">Motorista</label>
             <select class="fx-select" id="dar-motorista">
-              ${state.drivers.map(d=>`<option value="${d}" ${f.motoristaNome===d?'selected':''}>${d}</option>`).join("")}
+              ${makeOptions(state.drivers, f.motoristaNome)}
             </select>
           </div>
           <div class="fx-field">
