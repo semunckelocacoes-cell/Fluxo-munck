@@ -83,7 +83,7 @@ async function enviarNFSe(xmlAssinado) {
   return new Promise((resolve, reject) => {
     const cabecalho = '<?xml version="1.0" encoding="UTF-8"?><cabecalho versao="2.04" xmlns="http://www.abrasf.org.br/nfse.xsd"><versaoDados>2.04</versaoDados></cabecalho>';
     const soap = '<?xml version="1.0" encoding="UTF-8"?>' +
-      '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:e="http://nfse.fortaleza.ce.gov.br">' +
+      '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:e="http://iss.fortaleza.ce.gov.br">' +
       '<soapenv:Header/><soapenv:Body><e:RecepcionarLoteRps>' +
       '<nfseCabecMsg><![CDATA[' + cabecalho + ']]></nfseCabecMsg>' +
       '<nfseDadosMsg><![CDATA[' + xmlAssinado + ']]></nfseDadosMsg>' +
@@ -91,9 +91,9 @@ async function enviarNFSe(xmlAssinado) {
 
     const buf = Buffer.from(soap, "utf8");
     const req = https.request({
-      hostname: "nfse.fortaleza.ce.gov.br",
+      hostname: "iss.fortaleza.ce.gov.br",
       port: 443,
-      path: "/nfse/services/RecepcionarLoteRps",
+      path: "/grpfor/services/RecepcionarLoteRps",
       method: "POST",
       headers: {
         "Content-Type": "text/xml;charset=UTF-8",
