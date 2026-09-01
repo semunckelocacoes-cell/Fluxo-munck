@@ -2043,6 +2043,10 @@
             const card = listEl.querySelector(`[data-entry-id="${e.id}"]`);
             if (!card) return;
             card.querySelector(".fx-edit-trigger")?.addEventListener("click", () => openEditModal(e));
+            card.querySelector(".fx-nfse-trigger")?.addEventListener("click", () => {
+              if (e.notaEmitida) { marcarNotaEmitida(e); }
+              else { emitirNFSe(e); }
+            });
             card.querySelector("[data-photo-trigger]")?.addEventListener("click", () => { state.photoLightbox = e.foto; render(); });
             const delBtn = card.querySelector(".fx-del-trigger");
             if (delBtn) {
@@ -2766,6 +2770,40 @@
       btn.addEventListener("click", () => pressPinKey(btn.dataset.digit));
     });
     document.getElementById("fx-pin-erase").addEventListener("click", erasePinKey);
+  }
+
+  async function emitirNFSe(entry) {
+    showToast("Gerando NFS-e... aguarde.");
+    try {
+      const resp = await fetch("/.netlify/functions/proxy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "emitir_nfse",
+          dados: {
+            cliente: entry.cliente || "",
+            cnpjCliente: entry.cnpjCliente || "",
+            valor: entry.valor || "0",
+            servico: entry.servico || "Elevacao de carga",
+            data: entry.data || new Date().toISOString().split("T")[0]
+          }
+        })
+      });
+      const data = await resp.json();
+      if (data.ok) {
+        showToast("NFS-e gerada! N\u00ba RPS: " + data.numeroRps);
+        await saveEntryToDb(entry.id, { ...entry, notaEmitida: true, numeroRps: data.numeroRps });
+      } else {
+        showToast("Erro ao gerar NFS-e: " + (data.error || "tente novamente"));
+      }
+    } catch (e) {
+      showToast("Erro de conex\u00e3o ao gerar NFS-e.");
+    }
+  }
+
+  async function marcarNotaEmitida(entry) {
+    await saveEntryToDb(entry.id, { ...entry, notaEmitida: !entry.notaEmitida });
+    showToast(!entry.notaEmitida ? "\u2713 Nota marcada como emitida!" : "Nota desmarcada.");
   }
 
   function escapeHtml(str) {
