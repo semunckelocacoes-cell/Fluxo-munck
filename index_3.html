@@ -1,0 +1,2832 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Fluxo Mensal · Locação de Munck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #15181D;
+  }
+</style>
+<style>
+  :root {
+    --bg: #15181D;
+    --surface: #1F232B;
+    --surface-2: #262B35;
+    --border: #2E3440;
+    --text: #ECEEF1;
+    --text-dim: #8A92A3;
+    --accent: #2DD9A8;
+    --accent-dim: #1A6E59;
+    --warn: #E8636B;
+    --warn-dim: #4A2329;
+    --gold: #E8B95C;
+  }
+
+  * { box-sizing: border-box; }
+
+  .fluxo-root {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    width: 100%;
+    min-height: 100%;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .fluxo-num {
+    font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---- Header ---- */
+  .fx-header {
+    padding: 20px 16px 0;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 20;
+  }
+  .fx-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .fx-title {
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    font-weight: 600;
+    margin: 0;
+  }
+  .fx-title b { color: var(--accent); }
+
+  .fx-mode-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 11px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-dim);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .fx-mode-badge.financeiro {
+    background: var(--gold);
+    color: #2E2106;
+    border-color: var(--gold);
+  }
+
+  .fx-months {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 14px;
+    scrollbar-width: none;
+  }
+  .fx-months::-webkit-scrollbar { display: none; }
+  .fx-month-btn {
+    flex: 0 0 auto;
+    padding: 7px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-dim);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+  .fx-month-btn:hover { border-color: var(--accent-dim); }
+  .fx-month-btn.active {
+    background: var(--accent);
+    color: #0A1410;
+    border-color: var(--accent);
+  }
+
+  /* ---- Body ---- */
+  .fx-body { padding: 4px 16px 100px; }
+
+  /* ---- Totals ---- */
+  .fx-totals {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .fx-total-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+  }
+  .fx-total-card.wide { grid-column: 1 / -1; }
+  .fx-total-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .fx-total-value {
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .fx-total-value.green { color: var(--accent); }
+  .fx-total-value.red { color: var(--warn); }
+  .fx-total-value.gold { color: var(--gold); }
+  .fx-total-sub {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  .fx-net-card {
+    background: linear-gradient(135deg, var(--surface-2), var(--surface));
+    border: 1px solid var(--accent-dim);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .fx-net-label { font-size: 12px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: .06em;}
+  .fx-net-value { font-size: 26px; font-weight: 800; }
+
+  /* ---- Section ---- */
+  .fx-section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 24px 0 12px;
+  }
+  .fx-section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .fx-count-badge {
+    font-size: 11px;
+    color: var(--text-dim);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 2px 8px;
+  }
+
+  .fx-add-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 14px;
+    border: 1.5px dashed var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    margin-bottom: 16px;
+  }
+  .fx-add-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .fx-add-btn-big {
+    padding: 22px;
+    font-size: 16px;
+    border-color: var(--accent-dim);
+    color: var(--accent);
+    background: rgba(45, 217, 168, 0.06);
+  }
+
+  /* ---- Tabs ---- */
+  .fx-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 0 0 10px 0;
+  }
+  .fx-tab {
+    flex: 1;
+    padding: 9px 0;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-dim);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .fx-tab.active {
+    background: var(--surface-2);
+    color: var(--text);
+    border-color: var(--accent-dim);
+  }
+
+  /* ---- Expense cards ---- */
+  .fx-expense-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+  .fx-expense-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .fx-expense-name { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+  .fx-expense-meta { font-size: 11px; color: var(--text-dim); }
+  .fx-expense-value { font-size: 16px; font-weight: 700; color: var(--warn); font-family: 'JetBrains Mono', monospace; }
+
+  .fx-driver-welcome {
+    text-align: center;
+    padding: 36px 16px 28px;
+  }
+  .fx-driver-welcome-icon { font-size: 40px; margin-bottom: 12px; }
+  .fx-driver-welcome-title { font-size: 19px; font-weight: 700; margin-bottom: 8px; }
+  .fx-driver-welcome-text { font-size: 13px; color: var(--text-dim); line-height: 1.5; max-width: 280px; margin: 0 auto; }
+
+  /* ---- Entry cards ---- */
+  .fx-entry {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+  .fx-entry-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+  }
+  .fx-entry-client { font-size: 15px; font-weight: 700; color: var(--text); }
+  .fx-entry-date { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+  .fx-entry-value { font-size: 17px; font-weight: 700; color: var(--accent); }
+  .fx-entry-desc { font-size: 13px; color: var(--text-dim); margin-bottom: 10px; line-height: 1.4; }
+
+  .fx-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .fx-tag {
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 8px;
+    background: var(--surface-2);
+    color: var(--text-dim);
+    font-weight: 600;
+  }
+  .fx-tag.paid { background: var(--accent-dim); color: var(--accent); }
+  .fx-tag.unpaid { background: var(--warn-dim); color: var(--warn); }
+  .fx-tag.driver { background: rgba(232,185,92,0.15); color: var(--gold); }
+
+  .fx-entry-breakdown {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .fx-breakdown-item { text-align: left; }
+  .fx-breakdown-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 2px; }
+  .fx-breakdown-value { font-size: 13px; font-weight: 700; color: var(--text); }
+
+  .fx-entry-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .fx-icon-btn {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .fx-icon-btn:hover { color: var(--text); }
+  .fx-icon-btn.danger:hover { color: var(--warn); border-color: var(--warn-dim); }
+
+  .fx-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-dim);
+  }
+  .fx-empty-icon { font-size: 32px; margin-bottom: 10px; opacity: 0.5; }
+  .fx-empty-text { font-size: 13px; line-height: 1.5; }
+
+  /* ---- Modal / Form ---- */
+  .fx-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 12, 15, 0.7);
+    z-index: 100;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    backdrop-filter: blur(2px);
+  }
+  .fx-overlay.center { align-items: center; padding: 16px; }
+  .fx-modal {
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    width: 100%;
+    max-width: 480px;
+    max-height: 92vh;
+    overflow-y: auto;
+    padding: 20px 18px 28px;
+    animation: fx-slide-up 0.22s ease;
+  }
+  .fx-modal.center-modal {
+    border-radius: 20px;
+    max-height: none;
+  }
+  @keyframes fx-slide-up {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .fx-modal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+  }
+  .fx-modal-title { font-size: 17px; font-weight: 700; }
+  .fx-close-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .fx-field { margin-bottom: 14px; }
+  .fx-field-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .fx-input, .fx-select {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 15px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+  .fx-input:focus, .fx-select:focus { border-color: var(--accent); }
+  .fx-input::placeholder { color: var(--text-dim); opacity: 0.7; }
+  .fx-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .fx-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 20px 0 14px;
+  }
+  .fx-divider-line { flex: 1; height: 1px; background: var(--border); }
+  .fx-divider-text { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+
+  .fx-locked-note {
+    font-size: 12px;
+    color: var(--text-dim);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+
+  .fx-toggle-group { display: flex; gap: 8px; }
+  .fx-toggle-btn {
+    flex: 1;
+    padding: 11px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-dim);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .fx-toggle-btn.sel-paid { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+  .fx-toggle-btn.sel-unpaid { background: var(--warn-dim); color: var(--warn); border-color: var(--warn); }
+
+  .fx-save-btn {
+    width: 100%;
+    padding: 15px;
+    border-radius: 12px;
+    border: none;
+    background: var(--accent);
+    color: #0A1410;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+  .fx-save-btn:active { transform: scale(0.98); }
+  .fx-save-btn.gold { background: var(--gold); color: #2E2106; }
+
+  .fx-photo-upload {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 28px 14px;
+    border-radius: 12px;
+    border: 1.5px dashed var(--border);
+    background: var(--surface);
+    color: var(--text-dim);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .fx-photo-upload:hover { border-color: var(--accent); color: var(--accent); }
+  .fx-photo-upload-icon { font-size: 24px; }
+
+  .fx-photo-preview-wrap {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .fx-photo-preview {
+    width: 100%;
+    max-height: 220px;
+    object-fit: cover;
+    display: block;
+  }
+  .fx-photo-remove {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(20, 22, 27, 0.85);
+    color: var(--warn);
+    border: 1px solid var(--warn-dim);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .fx-entry-photo-thumb {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 8px;
+    cursor: pointer;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+  }
+  .fx-entry-inner {
+    flex: 1;
+    min-width: 0;
+  }
+  .fx-entry-with-photo {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  /* ---- Import progress ---- */
+  .fx-import-progress-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .fx-import-bar-wrap {
+    height: 8px;
+    background: var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .fx-import-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+    border-radius: 8px;
+    transition: width 0.5s ease;
+  }
+
+  /* ---- Annual Report ---- */
+  .fx-report { padding-bottom: 16px; }
+  .fx-report-title { font-size: 18px; font-weight: 800; margin-bottom: 14px; }
+  .fx-report-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .fx-chart {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 4px;
+    height: 120px;
+    padding: 0 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 8px 0;
+  }
+  .fx-bar-group { display: flex; flex-direction: column; align-items: center; flex: 1; }
+  .fx-bars { display: flex; align-items: flex-end; gap: 2px; height: 90px; }
+  .fx-bar { width: 10px; border-radius: 3px 3px 0 0; min-height: 0; transition: height 0.3s; }
+  .fx-bar.serv { background: var(--accent); }
+  .fx-bar.desp { background: var(--warn); }
+  .fx-bar-label { font-size: 9px; color: var(--text-dim); margin-top: 4px; }
+  .fx-chart-legend { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-dim); margin-bottom: 8px; }
+  .fx-legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+  .fx-card-alert {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1.5px solid var(--gold);
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    background: rgba(232,185,92,0.07);
+  }
+
+  .fx-parcela-bar-wrap {
+    height: 4px;
+    background: var(--border);
+    border-radius: 4px;
+    margin-top: 6px;
+    overflow: hidden;
+  }
+  .fx-parcela-bar {
+    height: 100%;
+    background: var(--gold);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+  .fx-parcela-label {
+    font-size: 10px;
+    color: var(--gold);
+    font-weight: 700;
+    margin-top: 3px;
+  }
+
+  /* ---- PIN pad ---- */
+  .fx-pin-dots { display: flex; justify-content: center; gap: 14px; margin: 20px 0 26px; }
+  .fx-pin-dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: transparent;
+  }
+  .fx-pin-dot.filled { background: var(--gold); border-color: var(--gold); }
+  .fx-pin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .fx-pin-key {
+    padding: 16px 0;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 19px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .fx-pin-key:active { background: var(--surface-2); }
+  .fx-pin-key.erase { font-size: 13px; color: var(--text-dim); }
+  .fx-pin-error { text-align: center; color: var(--warn); font-size: 13px; font-weight: 600; margin-top: 14px; min-height: 18px; }
+
+  /* ---- Driver manager ---- */
+  .fx-driver-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
+  .fx-driver-name { font-size: 14px; font-weight: 600; }
+  .fx-driver-del {
+    background: transparent;
+    border: none;
+    color: var(--warn);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .fx-driver-add-row { display: flex; gap: 8px; margin-top: 10px; }
+  .fx-driver-add-row .fx-input { flex: 1; }
+  .fx-driver-add-btn {
+    padding: 0 18px;
+    border-radius: 10px;
+    border: none;
+    background: var(--accent);
+    color: #0A1410;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .fx-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-dim);
+  }
+
+  .fx-loading {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+
+  .fx-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface-2);
+    border: 1px solid var(--accent-dim);
+    color: var(--accent);
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 200;
+    animation: fx-fade 0.2s ease;
+    text-align: center;
+    max-width: 88%;
+  }
+  @keyframes fx-fade { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+</head>
+<body>
+<div id="fluxo-app" class="fluxo-root"></div>
+
+<script>
+(function () {
+  const MONTHS = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+  const MONTHS_FULL = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const PAY_METHODS = ["Pix", "Dinheiro", "Cartão", "Transferência", "Outro"];
+  const SERVICES = [
+    "Elevação de caixa container",
+    "Painel de LED",
+    "Poste",
+    "Baú",
+    "Caixa de caminhão de lixo",
+    "Máquina de gelo",
+    "Transporte de baú",
+    "Container",
+    "Transporte de empilhadeira",
+    "Carroceria",
+    "Caçamba",
+    "Transporte",
+    "Carga sensível",
+    "Carga pesada (perigosa)",
+    "Transformador",
+    "Outro"
+  ];
+  const YEAR = new Date().getFullYear();
+  const ENTRIES_KEY = "fluxo_entries_" + YEAR;
+  const DRIVERS_KEY = "fluxo_drivers";
+  const PIN_KEY = "fluxo_pin";
+  const DEFAULT_PIN = "1234";
+  const FIXED_EXPENSES_KEY = "fluxo_fixed_expenses";
+  const AVULSO_KEY = "fluxo_avulso_" + YEAR;
+  const DIARIAS_KEY = "fluxo_diarias_" + YEAR;
+  const COMBUSTIVEL_KEY = "fluxo_combustivel_" + YEAR;
+  const CARD1_DIA = 8;   // fatura cartão 1
+  const CARD2_DIA = 10;  // fatura cartão 2
+  const EXPENSE_CATS = [
+    "Almoço / Refeição","Pedágio","Hospedagem","Peças mecânicas",
+    "Serviço mecânico","Lavagem","Multa","Combustível extra",
+    "Compra no cartão","Estacionamento","Pneu","Borracharia","Outro"
+  ];
+
+  let state = {
+    loading: true,
+    activeMonth: new Date().getMonth(),
+    entries: [],
+    drivers: [],
+    savedPin: null,
+    financeMode: false,
+    pinScreen: false,
+    pinInput: "",
+    pinError: "",
+    modalOpen: false,
+    editingId: null,
+    confirmDeleteId: null,
+    driverManagerOpen: false,
+    newDriverName: "",
+    toast: null,
+    photoLightbox: null,
+    form: emptyForm(),
+    activeTab: "servicos",
+    annualReportOpen: false,
+    importTab: false,
+    importResults: [],
+    importLoading: false,
+    importProgress: 0,
+    importError: "",
+    fixedExpenses: [],
+    avulsos: [],
+    expenseModalOpen: false,
+    editingExpenseId: null,
+    fixedManagerOpen: false,
+    expenseForm: emptyExpenseForm(),
+    fixedForm: emptyFixedForm(),
+    diarias: [],
+    diariasTab: false,
+    selectedDriverFilter: "",
+    diariaModalOpen: false,
+    editingDiariaId: null,
+    diariaForm: emptyDiariaForm(),
+    combustivel: [],
+    combustivelModalOpen: false,
+    editingCombustivelId: null,
+    combustivelForm: emptyCombustivelForm()
+  };
+
+  function emptyForm() {
+    return {
+      data: "",
+      cliente: "",
+      servico: SERVICES[0],
+      servicoOutro: "",
+      foto: "",
+      valor: "",
+      formaPagamento: "Pix",
+      pago: true,
+      motoristaNome: "",
+      combustivelValor: "",
+      combustivelData: "",
+      valorMotorista: "",
+      manutencao: "",
+      combustivelPago: false,
+      motoristaPago: false,
+      manutencaoPago: false,
+      cnpjCliente: "",
+      notaEmitida: false
+    };
+  }
+
+  function emptyExpenseForm() {
+    return { data: "", descricao: "", categoria: "Almoço / Refeição", valor: "", formaPagamento: "Dinheiro", obs: "", parcelas: "", parcelaAtual: "1", cartao: "1" };
+  }
+  function emptyCombustivelForm() {
+    return { data: "", litros: "", valorTotal: "", posto: "", formaPagamento: "Pix", cartao: "1", pago: true, motoristaNome: "" };
+  }
+
+  function emptyDiariaForm() {
+    return { data: "", motoristaNome: "", valor: "", descricao: "", pago: false };
+  }
+
+  function emptyFixedForm() {
+    return { nome: "", valor: "", dia: "1", formaPagamento: "Débito automático" };
+  }
+
+  function fmtMoney(n) {
+    const v = Number(n) || 0;
+    return "R$ " + v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function fmtDateShort(iso) {
+    if (!iso) return "—";
+    const [y, m, d] = iso.split("-");
+    return `${d}/${m}`;
+  }
+
+  function csvEscape(val) {
+    const s = String(val ?? "");
+    if (/[",;\n]/.test(s)) {
+      return '"' + s.replace(/"/g, '""') + '"';
+    }
+    return s;
+  }
+
+  function exportMonthToCsv() {
+    const list = entriesForMonth(state.activeMonth);
+    if (list.length === 0) {
+      showToast("Não há lançamentos para exportar neste mês.");
+      return;
+    }
+    const headers = [
+      "Data", "Cliente", "Motorista", "Serviço", "Valor do Serviço",
+      "Forma de Pagamento", "Status", "Combustível (R$)", "Data Combustível",
+      "Valor Motorista (R$)", "Manutenção (R$)"
+    ];
+    const rows = list.map(e => [
+      fmtDateShort(e.data),
+      e.cliente || "",
+      e.motoristaNome || "",
+      e.servico || "",
+      (Number(e.valor) || 0).toFixed(2).replace(".", ","),
+      e.formaPagamento || "",
+      e.pago ? "Pago" : "Pendente",
+      (Number(e.combustivelValor) || 0).toFixed(2).replace(".", ","),
+      e.combustivelData ? fmtDateShort(e.combustivelData) : "",
+      (Number(e.valorMotorista) || 0).toFixed(2).replace(".", ","),
+      (Number(e.manutencao) || 0).toFixed(2).replace(".", ",")
+    ]);
+    const t = monthTotals(state.activeMonth);
+    rows.push([]);
+    rows.push([]);
+    rows.push(["RESUMO DO MÊS"]);
+    rows.push(["Total de Serviços", t.totalServicos.toFixed(2).replace(".", ",")]);
+    rows.push(["Total Motorista", t.totalMotorista.toFixed(2).replace(".", ",")]);
+    rows.push(["Total Manutenção", t.totalManutencao.toFixed(2).replace(".", ",")]);
+    rows.push(["Total Combustível", t.totalCombustivel.toFixed(2).replace(".", ",")]);
+    rows.push(["Total Despesas Avulsas", t.totalAvulsos.toFixed(2).replace(".", ",")]);
+    rows.push(["Total Despesas Fixas", t.totalFixas.toFixed(2).replace(".", ",")]);
+    rows.push(["LÍQUIDO DO MÊS", t.liquido.toFixed(2).replace(".", ",")]);
+
+    // Avulsos sheet section
+    const avList = avulsosForMonth(state.activeMonth);
+    if (avList.length > 0) {
+      rows.push([]);
+      rows.push(["DESPESAS AVULSAS"]);
+      rows.push(["Data","Categoria","Descrição","Forma de Pagamento","Valor"]);
+      avList.forEach(a => rows.push([
+        fmtDateShort(a.data), a.categoria || "", a.descricao || "", a.formaPagamento || "",
+        (Number(a.valor) || 0).toFixed(2).replace(".", ",")
+      ]));
+    }
+
+    // Fixed expenses section
+    if (state.fixedExpenses.length > 0) {
+      rows.push([]);
+      rows.push(["DESPESAS FIXAS MENSAIS"]);
+      rows.push(["Nome","Vencimento","Forma de Pagamento","Valor"]);
+      state.fixedExpenses.forEach(f => rows.push([
+        f.nome || "", "Dia " + (f.dia || 1), f.formaPagamento || "",
+        (Number(f.valor) || 0).toFixed(2).replace(".", ",")
+      ]));
+    }
+
+    const csvLines = [headers.map(csvEscape).join(";")]
+      .concat(rows.map(r => r.map(csvEscape).join(";")));
+    const csvContent = "\uFEFF" + csvLines.join("\r\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `fluxo_${MONTHS_FULL[state.activeMonth].toLowerCase()}_${YEAR}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("Arquivo exportado.");
+  }
+
+  function compressImage(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const MAX_DIM = 900;
+          let { width, height } = img;
+          if (width > height && width > MAX_DIM) {
+            height = Math.round(height * (MAX_DIM / width));
+            width = MAX_DIM;
+          } else if (height > MAX_DIM) {
+            width = Math.round(width * (MAX_DIM / height));
+            height = MAX_DIM;
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/jpeg", 0.7));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function uid() {
+    return "e" + Date.now() + Math.random().toString(36).slice(2, 7);
+  }
+
+  // ---- Firebase Realtime Database ----
+  const firebaseConfig = {
+    apiKey: "AIzaSyB3nWn246bo3szvUWgZmRhVoLmo3CshJr8",
+    authDomain: "locacao-de-munck.firebaseapp.com",
+    databaseURL: "https://locacao-de-munck-default-rtdb.firebaseio.com",
+    projectId: "locacao-de-munck",
+    storageBucket: "locacao-de-munck.firebasestorage.app",
+    messagingSenderId: "94293325932",
+    appId: "1:94293325932:web:96339c57c9db5d24270049"
+  };
+  const fbApp = firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  async function loadAll() {
+    // Real-time listener for entries — updates instantly for everyone
+    db.ref(ENTRIES_KEY).on("value", (snapshot) => {
+      const val = snapshot.val();
+      state.entries = val ? Object.keys(val).map(k => ({ id: k, ...val[k] })) : [];
+      state.loading = false;
+      render();
+    }, (err) => {
+      state.loading = false;
+      showToast("Não foi possível conectar ao banco de dados.");
+      render();
+    });
+
+    db.ref(DRIVERS_KEY).on("value", (snapshot) => {
+      const val = snapshot.val();
+      state.drivers = val ? Object.values(val) : [];
+      render();
+    });
+
+    db.ref(PIN_KEY).on("value", (snapshot) => {
+      state.savedPin = snapshot.val() || null;
+    });
+
+    db.ref(AVULSO_KEY).on("value", (snapshot) => {
+      const val = snapshot.val();
+      state.avulsos = val ? Object.keys(val).map(k => ({ id: k, ...val[k] })) : [];
+      render();
+    });
+
+    db.ref(FIXED_EXPENSES_KEY).on("value", (snapshot) => {
+      const val = snapshot.val();
+      state.fixedExpenses = val ? Object.keys(val).map(k => ({ id: k, ...val[k] })) : [];
+      render();
+    });
+
+    db.ref(DIARIAS_KEY).on("value", (snapshot) => {
+      const val = snapshot.val();
+      state.diarias = val ? Object.keys(val).map(k => ({ id: k, ...val[k] })) : [];
+      render();
+    });
+
+    db.ref(COMBUSTIVEL_KEY).on("value", (snapshot) => {
+      const val = snapshot.val();
+      state.combustivel = val ? Object.keys(val).map(k => ({ id: k, ...val[k] })) : [];
+      render();
+    });
+  }
+
+  async function saveEntryToDb(id, data) {
+    try {
+      await db.ref(ENTRIES_KEY + "/" + id).set(data);
+    } catch (e) {
+      showToast("Erro ao salvar. Verifique sua conexão.");
+    }
+  }
+
+  async function deleteEntryFromDb(id) {
+    try {
+      await db.ref(ENTRIES_KEY + "/" + id).remove();
+    } catch (e) {
+      showToast("Erro ao excluir. Verifique sua conexão.");
+    }
+  }
+
+  async function saveAvulsoToDb(id, data) {
+    try { await db.ref(AVULSO_KEY + "/" + id).set(data); }
+    catch (e) { showToast("Erro ao salvar despesa."); }
+  }
+  async function deleteAvulsoFromDb(id) {
+    try { await db.ref(AVULSO_KEY + "/" + id).remove(); }
+    catch (e) { showToast("Erro ao excluir despesa."); }
+  }
+  async function saveFixedToDb(id, data) {
+    try { await db.ref(FIXED_EXPENSES_KEY + "/" + id).set(data); }
+    catch (e) { showToast("Erro ao salvar despesa fixa."); }
+  }
+  async function deleteFixedFromDb(id) {
+    try { await db.ref(FIXED_EXPENSES_KEY + "/" + id).remove(); }
+    catch (e) { showToast("Erro ao excluir despesa fixa."); }
+  }
+
+  async function saveCombustivelToDb(id, data) {
+    try { await db.ref(COMBUSTIVEL_KEY + "/" + id).set(data); }
+    catch (e) { showToast("Erro ao salvar abastecimento."); }
+  }
+  async function deleteCombustivelFromDb(id) {
+    try { await db.ref(COMBUSTIVEL_KEY + "/" + id).remove(); }
+    catch (e) { showToast("Erro ao excluir abastecimento."); }
+  }
+
+  async function saveDiariaToDb(id, data) {
+    try { await db.ref(DIARIAS_KEY + "/" + id).set(data); }
+    catch (e) { showToast("Erro ao salvar diária."); }
+  }
+  async function deleteDiariaFromDb(id) {
+    try { await db.ref(DIARIAS_KEY + "/" + id).remove(); }
+    catch (e) { showToast("Erro ao excluir diária."); }
+  }
+
+  async function persistDrivers() {
+    try {
+      await db.ref(DRIVERS_KEY).set(state.drivers);
+    } catch (e) {
+      showToast("Erro ao salvar motoristas.");
+    }
+  }
+
+  async function persistPin(pin) {
+    try {
+      await db.ref(PIN_KEY).set(pin);
+      state.savedPin = pin;
+    } catch (e) {
+      showToast("Erro ao salvar o PIN.");
+    }
+  }
+
+  function showToast(msg) {
+    state.toast = msg;
+    render();
+    setTimeout(() => { state.toast = null; render(); }, 2400);
+  }
+
+  function entriesForMonth(monthIdx) {
+    return state.entries
+      .filter(e => {
+        if (!e.data) return false;
+        const m = parseInt(e.data.split("-")[1], 10) - 1;
+        return m === monthIdx;
+      })
+      .sort((a, b) => (a.data < b.data ? 1 : -1));
+  }
+
+  function avulsosForMonth(monthIdx) {
+    return state.avulsos.filter(a => {
+      if (!a.data) return false;
+      return parseInt(a.data.split("-")[1], 10) - 1 === monthIdx;
+    }).sort((a, b) => (a.data < b.data ? 1 : -1));
+  }
+
+  function monthTotals(monthIdx) {
+    const list = entriesForMonth(monthIdx);
+    const avList = avulsosForMonth(monthIdx);
+    let totalServicos = 0, totalMotorista = 0, totalManutencao = 0, totalCombustivel = 0, totalPago = 0, totalPendente = 0;
+    list.forEach(e => {
+      const v = Number(e.valor) || 0;
+      totalServicos += v;
+      totalMotorista += Number(e.valorMotorista) || 0;
+      totalManutencao += Number(e.manutencao) || 0;
+      totalCombustivel += Number(e.combustivelValor) || 0;
+      if (e.pago) totalPago += v; else totalPendente += v;
+    });
+    const totalAvulsos = avList.reduce((s, a) => s + (Number(a.valor) || 0), 0);
+    const totalFixas = state.fixedExpenses.reduce((s, f) => s + (Number(f.valor) || 0), 0);
+    const totalDespesas = totalMotorista + totalManutencao + totalCombustivel + totalAvulsos + totalFixas;
+    const liquido = totalServicos - totalDespesas;
+    return { totalServicos, totalMotorista, totalManutencao, totalCombustivel, totalPago, totalPendente, totalAvulsos, totalFixas, totalDespesas, liquido, count: list.length, avCount: avList.length };
+  }
+
+  /* ---------------- Mode / PIN ---------------- */
+
+  function openPinScreen() {
+    state.pinScreen = true;
+    state.pinInput = "";
+    state.pinError = "";
+    render();
+  }
+
+  function closePinScreen() {
+    state.pinScreen = false;
+    render();
+  }
+
+  function pressPinKey(digit) {
+    if (state.pinInput.length >= 4) return;
+    state.pinInput += digit;
+    state.pinError = "";
+    if (state.pinInput.length === 4) {
+      checkPin();
+      return;
+    }
+    render();
+  }
+
+  function erasePinKey() {
+    state.pinInput = state.pinInput.slice(0, -1);
+    render();
+  }
+
+  function checkPin() {
+    const correctPin = state.savedPin || DEFAULT_PIN;
+    if (state.pinInput === correctPin) {
+      state.financeMode = true;
+      state.pinScreen = false;
+      state.pinInput = "";
+      render();
+    } else {
+      state.pinError = "PIN incorreto. Tente novamente.";
+      state.pinInput = "";
+      render();
+    }
+  }
+
+  function exitFinanceMode() {
+    state.financeMode = false;
+    render();
+  }
+
+  /* ---------------- Driver manager ---------------- */
+
+  function openDriverManager() {
+    state.driverManagerOpen = true;
+    state.newDriverName = "";
+    render();
+  }
+  function closeDriverManager() {
+    state.driverManagerOpen = false;
+    render();
+  }
+  async function addDriver() {
+    const name = state.newDriverName.trim();
+    if (!name) return;
+    if (state.drivers.includes(name)) {
+      showToast("Esse motorista já está na lista.");
+      return;
+    }
+    state.drivers.push(name);
+    state.newDriverName = "";
+    await persistDrivers();
+    render();
+  }
+  async function removeDriver(name) {
+    state.drivers = state.drivers.filter(d => d !== name);
+    await persistDrivers();
+    render();
+  }
+
+  /* ---------------- Entry form ---------------- */
+
+  function openNewModal() {
+    state.form = emptyForm();
+    const m = String(state.activeMonth + 1).padStart(2, "0");
+    const today = new Date();
+    const todayMonth = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    state.form.data = todayMonth === m ? `${YEAR}-${m}-${dd}` : `${YEAR}-${m}-01`;
+    if (state.drivers.length > 0) state.form.motoristaNome = state.drivers[0];
+    state.editingId = null;
+    state.modalOpen = true;
+    render();
+  }
+
+  function openEditModal(entry) {
+    const savedServico = entry.servico || "";
+    const isKnown = SERVICES.includes(savedServico) && savedServico !== "Outro";
+    state.form = {
+      data: entry.data || "",
+      cliente: entry.cliente || "",
+      servico: isKnown ? savedServico : "Outro",
+      servicoOutro: isKnown ? "" : savedServico,
+      foto: entry.foto || "",
+      valor: entry.valor || "",
+      formaPagamento: entry.formaPagamento || "Pix",
+      pago: !!entry.pago,
+      motoristaNome: entry.motoristaNome || (state.drivers[0] || ""),
+      combustivelValor: entry.combustivelValor || "",
+      combustivelData: entry.combustivelData || "",
+      valorMotorista: entry.valorMotorista || "",
+      manutencao: entry.manutencao || ""
+    };
+    state.editingId = entry.id;
+    state.modalOpen = true;
+    render();
+  }
+
+  function closeModal() {
+    state.modalOpen = false;
+    state.editingId = null;
+    render();
+  }
+
+  async function saveForm() {
+    const f = state.form;
+    const isFinance = state.financeMode;
+    const servicoFinal = f.servico === "Outro" ? (f.servicoOutro || "").trim() : f.servico;
+    if (!f.data || !f.cliente.trim() || !servicoFinal) {
+      showToast("Preencha data, cliente e serviço.");
+      return;
+    }
+    if (isFinance && !f.valor) {
+      showToast("Preencha o valor do serviço.");
+      return;
+    }
+    const toSave = { ...f, servico: servicoFinal };
+    delete toSave.servicoOutro;
+    const id = state.editingId || uid();
+    await saveEntryToDb(id, toSave);
+    closeModal();
+    showToast(state.editingId ? "Lançamento atualizado." : "Lançamento adicionado.");
+  }
+
+  async function confirmDelete(id) {
+    state.confirmDeleteId = null;
+    await deleteEntryFromDb(id);
+    showToast("Lançamento removido.");
+  }
+
+  function setField(key, value) {
+    state.form[key] = value;
+  }
+
+  /* ---------- Diárias actions ---------- */
+  function openDiariaModal(prefillDriver) {
+    state.diariaForm = emptyDiariaForm();
+    const m = String(state.activeMonth + 1).padStart(2,"0");
+    const today = new Date();
+    const todayM = String(today.getMonth()+1).padStart(2,"0");
+    const dd = String(today.getDate()).padStart(2,"0");
+    state.diariaForm.data = todayM === m ? `${YEAR}-${m}-${dd}` : `${YEAR}-${m}-01`;
+    if (prefillDriver) state.diariaForm.motoristaNome = prefillDriver;
+    else if (state.drivers.length > 0) state.diariaForm.motoristaNome = state.drivers[0];
+    state.editingDiariaId = null;
+    state.diariaModalOpen = true;
+    render();
+  }
+
+  function openEditDiariaModal(d) {
+    state.diariaForm = { data: d.data||"", motoristaNome: d.motoristaNome||"", valor: d.valor||"", descricao: d.descricao||"", pago: !!d.pago };
+    state.editingDiariaId = d.id;
+    state.diariaModalOpen = true;
+    render();
+  }
+
+  function closeDiariaModal() { state.diariaModalOpen = false; state.editingDiariaId = null; render(); }
+
+  async function saveDiariaForm() {
+    const f = state.diariaForm;
+    if (!f.data || !f.motoristaNome || !f.valor) { showToast("Preencha data, motorista e valor."); return; }
+    const id = state.editingDiariaId || uid();
+    await saveDiariaToDb(id, { ...f });
+    closeDiariaModal();
+    showToast(state.editingDiariaId ? "Diária atualizada." : "Diária registrada.");
+  }
+
+  async function toggleDiariaPago(d) {
+    await saveDiariaToDb(d.id, { ...d, pago: !d.pago });
+    showToast(!d.pago ? "Marcado como pago." : "Marcado como pendente.");
+  }
+
+  async function deleteDiaria(id) {
+    await deleteDiariaFromDb(id);
+    showToast("Diária removida.");
+  }
+
+  /* ---------- Alerta fatura cartão ---------- */
+  function cardAlertHtml() {
+    const today = new Date();
+    const day = today.getDate();
+    const alerts = [];
+    const avCart = state.avulsos.filter(a => {
+      const p = a.formaPagamento || "";
+      return p.toLowerCase().includes("cartão") || p.toLowerCase().includes("cartao");
+    });
+    if (avCart.length === 0) return "";
+    // Fatura 1: vence dia 8
+    const dias1 = CARD1_DIA - day;
+    if (dias1 >= 0 && dias1 <= 5) {
+      const tot = avCart.filter(a=>a.cartao==="1"||!a.cartao).reduce((s,a)=>s+(Number(a.valor)||0),0);
+      alerts.push({ label: `Cartão 1 vence em ${dias1 === 0 ? "hoje" : dias1+" dia(s)"}`, valor: tot, cor: dias1<=2?"var(--warn)":"var(--gold)" });
+    }
+    // Fatura 2: vence dia 10
+    const dias2 = CARD2_DIA - day;
+    if (dias2 >= 0 && dias2 <= 5) {
+      const tot = avCart.filter(a=>a.cartao==="2").reduce((s,a)=>s+(Number(a.valor)||0),0);
+      alerts.push({ label: `Cartão 2 vence em ${dias2 === 0 ? "hoje" : dias2+" dia(s)"}`, valor: tot, cor: dias2<=2?"var(--warn)":"var(--gold)" });
+    }
+    if (alerts.length === 0) return "";
+    return alerts.map(al => `
+      <div class="fx-card-alert" style="border-color:${al.cor};">
+        <span style="color:${al.cor};font-weight:700;">⚠ ${al.label}</span>
+        <span class="fluxo-num" style="color:${al.cor};font-weight:700;">${fmtMoney(al.valor)}</span>
+      </div>`).join("");
+  }
+
+  /* ---------- Render aba diárias ---------- */
+  function renderDiariasTab(isFinance) {
+    const driver = state.selectedDriverFilter;
+    let list = state.diarias.sort((a,b) => (a.data < b.data ? 1 : -1));
+    if (!isFinance && driver) list = list.filter(d => d.motoristaNome === driver);
+    if (!isFinance && !driver && state.drivers.length > 0) list = list.filter(d => d.motoristaNome === state.drivers[0]);
+
+    const totalPago = list.filter(d=>d.pago).reduce((s,d)=>s+(Number(d.valor)||0),0);
+    const totalPendente = list.filter(d=>!d.pago).reduce((s,d)=>s+(Number(d.valor)||0),0);
+
+    return `
+      <div>
+        <div class="fx-totals" style="margin-bottom:14px;">
+          <div class="fx-total-card">
+            <div class="fx-total-label">Pago</div>
+            <div class="fx-total-value green fluxo-num">${fmtMoney(totalPago)}</div>
+          </div>
+          <div class="fx-total-card">
+            <div class="fx-total-label">Pendente</div>
+            <div class="fx-total-value red fluxo-num">${fmtMoney(totalPendente)}</div>
+          </div>
+        </div>
+
+        ${isFinance ? `
+        <div class="fx-row2" style="margin-bottom:12px;">
+          <select class="fx-select" id="fx-driver-filter">
+            <option value="">Todos os motoristas</option>
+            ${state.drivers.map(d=>`<option value="${d}" ${state.selectedDriverFilter===d?'selected':''}>${d}</option>`).join("")}
+          </select>
+          <button class="fx-add-btn" id="fx-add-diaria-btn" style="margin-bottom:0;">+ Nova diária</button>
+        </div>` : `
+        <div class="fx-row2" style="margin-bottom:12px;">
+          <select class="fx-select" id="fx-driver-filter">
+            ${state.drivers.map(d=>`<option value="${d}" ${(driver||state.drivers[0])===d?'selected':''}>${d}</option>`).join("")}
+          </select>
+          <div></div>
+        </div>`}
+
+        ${list.length === 0 ? `
+          <div class="fx-empty"><div class="fx-empty-icon">📋</div>
+          <div class="fx-empty-text">Nenhuma diária registrada ainda.</div></div>` :
+          list.map(d => `
+            <div class="fx-expense-card" data-diaria-id="${d.id}">
+              <div class="fx-expense-top">
+                <div>
+                  <div class="fx-expense-name">${escapeHtml(d.motoristaNome||"")}</div>
+                  <div class="fx-expense-meta">${fmtDateShort(d.data)}${d.descricao?' · '+escapeHtml(d.descricao):''}</div>
+                </div>
+                <div style="text-align:right;">
+                  <div class="fx-expense-value fluxo-num">${fmtMoney(d.valor)}</div>
+                  <div class="fx-tag ${d.pago?'paid':'unpaid'}" style="display:inline-block;margin-top:4px;">${d.pago?'✓ Pago':'⏱ Pendente'}</div>
+                </div>
+              </div>
+              ${isFinance ? `
+              <div class="fx-entry-actions">
+                <button class="fx-icon-btn fx-diaria-pago" data-id="${d.id}">${d.pago?'Marcar pendente':'Marcar pago'}</button>
+                <button class="fx-icon-btn fx-diaria-edit" data-id="${d.id}">Editar</button>
+                <button class="fx-icon-btn danger fx-diaria-del" data-id="${d.id}">Excluir</button>
+              </div>` : ""}
+            </div>`).join("")}
+      </div>`;
+  }
+
+  /* ---------- Combustível actions ---------- */
+  function openCombustivelModal() {
+    state.combustivelForm = emptyCombustivelForm();
+    const m = String(state.activeMonth + 1).padStart(2, "0");
+    const today = new Date();
+    const todayM = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    state.combustivelForm.data = todayM === m ? `${YEAR}-${m}-${dd}` : `${YEAR}-${m}-01`;
+    if (state.drivers.length > 0) state.combustivelForm.motoristaNome = state.drivers[0];
+    state.editingCombustivelId = null;
+    state.combustivelModalOpen = true;
+    render();
+  }
+
+  function openEditCombustivelModal(item) {
+    state.combustivelForm = {
+      data: item.data || "", litros: item.litros || "", valorTotal: item.valorTotal || "",
+      posto: item.posto || "", formaPagamento: item.formaPagamento || "Pix",
+      cartao: item.cartao || "1", pago: item.pago !== false, motoristaNome: item.motoristaNome || ""
+    };
+    state.editingCombustivelId = item.id;
+    state.combustivelModalOpen = true;
+    render();
+  }
+
+  function closeCombustivelModal() { state.combustivelModalOpen = false; state.editingCombustivelId = null; render(); }
+
+  async function saveCombustivelForm() {
+    const f = state.combustivelForm;
+    if (!f.data || !f.valorTotal) { showToast("Preencha data e valor total."); return; }
+    const id = state.editingCombustivelId || uid();
+    await saveCombustivelToDb(id, { ...f });
+    closeCombustivelModal();
+    showToast(state.editingCombustivelId ? "Abastecimento atualizado." : "Abastecimento registrado.");
+  }
+
+  async function toggleCombustivelPago(item) {
+    await saveCombustivelToDb(item.id, { ...item, pago: !item.pago });
+    showToast(!item.pago ? "Marcado como pago." : "Marcado como pendente.");
+  }
+
+  async function deleteCombustivel(id) {
+    await deleteCombustivelFromDb(id);
+    showToast("Abastecimento removido.");
+  }
+
+  function combustivelForMonth(monthIdx) {
+    return state.combustivel.filter(a => {
+      if (!a.data) return false;
+      return parseInt(a.data.split("-")[1], 10) - 1 === monthIdx;
+    }).sort((a, b) => (a.data < b.data ? 1 : -1));
+  }
+
+  function renderCombustivelTab() {
+    const list = combustivelForMonth(state.activeMonth);
+    const totalLitros = list.reduce((s, a) => s + (Number(a.litros) || 0), 0);
+    const totalValor = list.reduce((s, a) => s + (Number(a.valorTotal) || 0), 0);
+    const totalPago = list.filter(a => a.pago).reduce((s, a) => s + (Number(a.valorTotal) || 0), 0);
+    const totalPendente = list.filter(a => !a.pago).reduce((s, a) => s + (Number(a.valorTotal) || 0), 0);
+    const precoMedio = totalLitros > 0 ? (totalValor / totalLitros) : 0;
+
+    return `
+      <div>
+        <div class="fx-totals" style="margin-bottom:14px;">
+          <div class="fx-total-card">
+            <div class="fx-total-label">Total gasto</div>
+            <div class="fx-total-value red fluxo-num">${fmtMoney(totalValor)}</div>
+            <div class="fx-total-sub">${totalLitros.toFixed(1)}L · R$${precoMedio.toFixed(2)}/L</div>
+          </div>
+          <div class="fx-total-card">
+            <div class="fx-total-label">Pendente</div>
+            <div class="fx-total-value gold fluxo-num">${fmtMoney(totalPendente)}</div>
+          </div>
+        </div>
+
+        <button class="fx-add-btn" id="fx-add-comb-btn">+ Registrar abastecimento</button>
+
+        <div class="fx-section-head">
+          <div class="fx-section-title">Abastecimentos de ${MONTHS_FULL[state.activeMonth]}</div>
+          <div class="fx-count-badge">${list.length}</div>
+        </div>
+
+        ${list.length === 0 ? `
+          <div class="fx-empty"><div class="fx-empty-icon">⛽</div>
+          <div class="fx-empty-text">Nenhum abastecimento em ${MONTHS_FULL[state.activeMonth]}.<br>Toque em "+ Registrar" para adicionar.</div></div>` :
+          list.map(a => {
+            const isPix = (a.formaPagamento||"") === "Pix";
+            const isDinheiro = (a.formaPagamento||"") === "Dinheiro";
+            const isCartao = !isPix && !isDinheiro;
+            return `
+            <div class="fx-expense-card" data-comb-id="${a.id}">
+              <div class="fx-expense-top">
+                <div style="flex:1;">
+                  <div class="fx-expense-name">⛽ ${a.litros ? a.litros + 'L' : '—'} ${a.posto ? '· ' + escapeHtml(a.posto) : ''}</div>
+                  <div class="fx-expense-meta">${fmtDateShort(a.data)} · ${escapeHtml(a.formaPagamento||"")}${isCartao ? ' · Cartão '+(a.cartao||1) : ''}</div>
+                  ${a.motoristaNome ? `<div class="fx-expense-meta" style="margin-top:2px;">Motorista: ${escapeHtml(a.motoristaNome)}</div>` : ""}
+                </div>
+                <div style="text-align:right;">
+                  <div class="fx-expense-value fluxo-num">${fmtMoney(a.valorTotal)}</div>
+                  <div class="fx-tag ${a.pago?'paid':'unpaid'}" style="display:inline-block;margin-top:4px;font-size:10px;">${a.pago?'✓ Pago':'⏱ Pendente'}</div>
+                </div>
+              </div>
+              <div class="fx-entry-actions">
+                <button class="fx-icon-btn fx-comb-pago" data-id="${a.id}">${a.pago?'Marcar pendente':'Marcar pago'}</button>
+                <button class="fx-icon-btn fx-comb-edit" data-id="${a.id}">Editar</button>
+                <button class="fx-icon-btn danger fx-comb-del" data-id="${a.id}">Excluir</button>
+              </div>
+            </div>`;
+          }).join("")}
+      </div>`;
+  }
+
+  function renderImportTab() {
+    const isLocal = location.protocol === "file:";
+    const steps = ["Lendo arquivo...", "Enviando para IA...", "Analisando lançamentos...", "Finalizando..."];
+    const stepIdx = Math.min(Math.floor(state.importProgress / 25), 3);
+    return `
+      <div style="padding-bottom:20px;">
+        <div class="fx-report-title">Importar extrato</div>
+
+        ${isLocal ? `
+        <div class="fx-card-alert" style="border-color:var(--warn);background:rgba(232,99,107,0.08);margin-bottom:14px;">
+          <div>
+            <div style="color:var(--warn);font-weight:700;font-size:13px;">⚠ Aberto como arquivo local</div>
+            <div style="color:var(--text-dim);font-size:12px;margin-top:3px;">A importação só funciona pelo link do Netlify.<br>Acesse pelo link publicado e tente novamente.</div>
+          </div>
+        </div>` : `
+        <div class="fx-locked-note">Envie o PDF do extrato bancário ou CSV da planilha. A IA identifica os lançamentos e você confirma antes de salvar.</div>`}
+
+        ${state.importError ? `
+        <div class="fx-card-alert" style="border-color:var(--warn);background:rgba(232,99,107,0.08);margin-bottom:14px;">
+          <span style="color:var(--warn);font-size:13px;">❌ ${escapeHtml(state.importError)}</span>
+          <button class="fx-icon-btn" id="fx-import-clear-err">Tentar novamente</button>
+        </div>` : ""}
+
+        ${state.importLoading ? `
+        <div class="fx-import-progress-wrap">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-size:13px;font-weight:600;color:var(--text);">${steps[stepIdx]}</span>
+            <span class="fluxo-num" style="font-size:13px;color:var(--accent);font-weight:700;">${state.importProgress}%</span>
+          </div>
+          <div class="fx-import-bar-wrap">
+            <div class="fx-import-bar" style="width:${state.importProgress}%"></div>
+          </div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:8px;">Aguarde, pode levar até 30 segundos dependendo do tamanho do PDF...</div>
+        </div>` : `
+        <label class="fx-photo-upload ${isLocal ? 'disabled' : ''}" for="${isLocal ? '' : 'fx-import-file'}" style="margin-bottom:16px;${isLocal ? 'opacity:0.4;cursor:not-allowed;' : ''}">
+          <span class="fx-photo-upload-icon">📄</span>
+          <span>Selecionar PDF ou CSV</span>
+        </label>
+        <input type="file" id="fx-import-file" accept=".pdf,.csv,.xlsx" style="display:none;" ${isLocal ? 'disabled' : ''}>`}
+
+        ${state.importResults.length > 0 ? `
+        <div class="fx-section-head">
+          <div class="fx-section-title">Sugestões encontradas</div>
+          <div class="fx-count-badge">${state.importResults.length}</div>
+        </div>
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;">Confirme os que quiser adicionar ao mês de ${MONTHS_FULL[state.activeMonth]}:</div>
+        ${state.importResults.map((r, idx) => `
+          <div class="fx-expense-card" style="margin-bottom:8px;">
+            <div class="fx-expense-top">
+              <div style="flex:1;">
+                <div class="fx-expense-name">${escapeHtml(r.descricao)}</div>
+                <div class="fx-expense-meta">${r.data} · <span style="color:${r.valor > 0 ? 'var(--accent)' : 'var(--warn)'};">${r.tipo}</span></div>
+              </div>
+              <div class="fx-expense-value" style="color:${r.valor > 0 ? 'var(--accent)' : 'var(--warn)'};">${fmtMoney(Math.abs(r.valor))}</div>
+            </div>
+            <div class="fx-entry-actions" style="margin-top:8px;">
+              <button class="fx-icon-btn" style="color:var(--accent);" data-import-idx="${idx}">✓ Adicionar</button>
+              <button class="fx-icon-btn danger" data-dismiss-idx="${idx}">Ignorar</button>
+            </div>
+          </div>`).join("")}
+        ` : ""}
+      </div>`;
+  }
+
+  async function handlePdfImport(file) {
+    if (location.protocol === "file:") {
+      state.importError = "Aberto como arquivo local. Acesse pelo link do Netlify para usar a importação.";
+      render();
+      return;
+    }
+    state.importLoading = true;
+    state.importResults = [];
+    state.importError = "";
+    state.importProgress = 5;
+    render();
+
+    // Animate progress bar during fetch
+    const progressTimer = setInterval(() => {
+      if (state.importProgress < 85) {
+        state.importProgress += state.importProgress < 30 ? 8 : state.importProgress < 60 ? 4 : 1;
+        render();
+      }
+    }, 600);
+
+    try {
+      // Step 1: read file
+      state.importProgress = 10; render();
+      const base64 = await new Promise((res, rej) => {
+        const reader = new FileReader();
+        reader.onload = e => res(e.target.result.split(",")[1]);
+        reader.onerror = () => rej(new Error("Falha ao ler o arquivo."));
+        reader.readAsDataURL(file);
+      });
+
+      // Step 2: send to API
+      state.importProgress = 30; render();
+      const isPdf = file.name.toLowerCase().endsWith(".pdf");
+      const prompt = "Extraia TODOS os lançamentos deste extrato e retorne SOMENTE um array JSON com objetos {data, descricao, valor, tipo}. Regras: valor positivo=crédito, negativo=débito. data no formato DD/MM. tipo='Crédito' ou 'Débito'. Sem texto antes ou depois, somente o JSON puro.";
+
+      const body = {
+        model: "claude-sonnet-4-6",
+        max_tokens: 4000,
+        messages: [{ role: "user", content: [
+          isPdf
+            ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: base64 } }
+            : { type: "text", text: "Extrato em CSV/texto:\n" + atob(base64).substring(0, 8000) },
+          { type: "text", text: prompt }
+        ]}]
+      };
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60000); // 60s timeout
+
+      const resp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
+
+      // Step 3: parse
+      state.importProgress = 90; render();
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}));
+        throw new Error(errData.error?.message || `Erro da API: ${resp.status}`);
+      }
+      const data = await resp.json();
+      const txt = data.content?.find(b => b.type === "text")?.text || "[]";
+      const clean = txt.replace(/```json|```/g, "").trim();
+      const results = JSON.parse(clean);
+      if (!Array.isArray(results)) throw new Error("Resposta inesperada da IA.");
+      state.importResults = results;
+      state.importProgress = 100;
+
+    } catch (e) {
+      if (e.name === "AbortError") {
+        state.importError = "Tempo esgotado (60s). O arquivo pode ser muito grande. Tente um extrato menor.";
+      } else if (e.message.includes("Failed to fetch") || e.message.includes("NetworkError")) {
+        state.importError = "Sem conexão com a internet. Verifique e tente novamente.";
+      } else {
+        state.importError = e.message || "Não foi possível analisar o arquivo.";
+      }
+    } finally {
+      clearInterval(progressTimer);
+      state.importLoading = false;
+      render();
+    }
+  }
+
+  async function confirmImport(idx) {
+    const r = state.importResults[idx];
+    if (!r) return;
+    const [dd, mm] = (r.data || "01/01").split("/");
+    const entry = {
+      data: `${YEAR}-${(mm||"01").padStart(2,"0")}-${(dd||"01").padStart(2,"0")}`,
+      cliente: r.descricao || "Importado",
+      servico: r.tipo || "Importado",
+      valor: r.valor > 0 ? String(r.valor) : "",
+      formaPagamento: r.tipo === "Crédito" ? "Transferência" : "Débito",
+      pago: true, motoristaNome: "", combustivelValor: "",
+      combustivelData: "", valorMotorista: "", manutencao: "", foto: ""
+    };
+    await saveEntryToDb(uid(), entry);
+    state.importResults.splice(idx, 1);
+    showToast("Lançamento adicionado.");
+    render();
+  }
+
+  function dismissImport(idx) {
+    state.importResults.splice(idx, 1);
+    render();
+  }
+
+  function renderAnnualReport() {
+    const allMonths = MONTHS.map((m, i) => {
+      const list = state.entries.filter(e => {
+        if (!e.data) return false;
+        return parseInt(e.data.split("-")[1], 10) - 1 === i;
+      });
+      const avList = state.avulsos.filter(a => {
+        if (!a.data) return false;
+        return parseInt(a.data.split("-")[1], 10) - 1 === i;
+      });
+      const totalServicos = list.reduce((s, e) => s + (Number(e.valor) || 0), 0);
+      const totalMotorista = list.reduce((s, e) => s + (Number(e.valorMotorista) || 0), 0);
+      const totalManutencao = list.reduce((s, e) => s + (Number(e.manutencao) || 0), 0);
+      const totalCombustivel = list.reduce((s, e) => s + (Number(e.combustivelValor) || 0), 0)
+        + state.combustivel.filter(a => { if(!a.data) return false; return parseInt(a.data.split("-")[1],10)-1===i; }).reduce((s,a)=>s+(Number(a.valorTotal)||0),0);
+      const totalAvulsos = avList.reduce((s, a) => s + (Number(a.valor) || 0), 0);
+      const totalFixas = state.fixedExpenses.reduce((s, f) => s + (Number(f.valor) || 0), 0);
+      const totalDespesas = totalMotorista + totalManutencao + totalCombustivel + totalAvulsos + totalFixas;
+      const liquido = totalServicos - totalDespesas;
+      return { m, i, totalServicos, totalDespesas, liquido, count: list.length };
+    });
+
+    const grandServicos = allMonths.reduce((s, m) => s + m.totalServicos, 0);
+    const grandDespesas = allMonths.reduce((s, m) => s + m.totalDespesas, 0);
+    const grandLiquido = grandServicos - grandDespesas;
+    const maxVal = Math.max(...allMonths.map(m => Math.max(m.totalServicos, m.totalDespesas)), 1);
+
+    const bars = allMonths.map(m => {
+      const hS = m.totalServicos > 0 ? Math.max(4, Math.round((m.totalServicos / maxVal) * 100)) : 0;
+      const hD = m.totalDespesas > 0 ? Math.max(4, Math.round((m.totalDespesas / maxVal) * 100)) : 0;
+      return `
+        <div class="fx-bar-group">
+          <div class="fx-bars">
+            <div class="fx-bar serv" style="height:${hS}px" title="Serviços: ${fmtMoney(m.totalServicos)}"></div>
+            <div class="fx-bar desp" style="height:${hD}px" title="Despesas: ${fmtMoney(m.totalDespesas)}"></div>
+          </div>
+          <div class="fx-bar-label">${m.m}</div>
+        </div>`;
+    }).join("");
+
+    return `
+      <div class="fx-report">
+        <div class="fx-report-title">Relatório ${YEAR}</div>
+        <div class="fx-report-cards">
+          <div class="fx-total-card">
+            <div class="fx-total-label">Total entrou</div>
+            <div class="fx-total-value green fluxo-num">${fmtMoney(grandServicos)}</div>
+          </div>
+          <div class="fx-total-card">
+            <div class="fx-total-label">Total saiu</div>
+            <div class="fx-total-value red fluxo-num">${fmtMoney(grandDespesas)}</div>
+          </div>
+          <div class="fx-total-card wide">
+            <div class="fx-total-label">Líquido do ano</div>
+            <div class="fx-total-value fluxo-num" style="color:${grandLiquido >= 0 ? 'var(--accent)' : 'var(--warn)'};font-size:26px;font-weight:800;">${fmtMoney(grandLiquido)}</div>
+          </div>
+        </div>
+
+        <div class="fx-chart-legend">
+          <span class="fx-legend-dot" style="background:var(--accent)"></span> Serviços &nbsp;
+          <span class="fx-legend-dot" style="background:var(--warn)"></span> Despesas
+        </div>
+        <div class="fx-chart">${bars}</div>
+
+        <div class="fx-section-head" style="margin-top:20px;">
+          <div class="fx-section-title">Mês a mês</div>
+        </div>
+        ${allMonths.map(m => m.totalServicos > 0 || m.totalDespesas > 0 ? `
+          <div class="fx-expense-card" style="margin-bottom:8px;">
+            <div class="fx-expense-top">
+              <div><div class="fx-expense-name">${MONTHS_FULL[m.i]}</div>
+              <div class="fx-expense-meta">${m.count} serviço${m.count === 1 ? '' : 's'}</div></div>
+              <div style="text-align:right;">
+                <div class="fx-expense-value" style="color:${m.liquido >= 0 ? 'var(--accent)' : 'var(--warn)'};">${fmtMoney(m.liquido)}</div>
+                <div style="font-size:10px;color:var(--text-dim);">líquido</div>
+              </div>
+            </div>
+          </div>` : "").join("")}
+      </div>`;
+  }
+
+  /* ---------------- Expense actions ---------------- */
+
+  function openExpenseModal() {
+    state.expenseForm = emptyExpenseForm();
+    const m = String(state.activeMonth + 1).padStart(2, "0");
+    const today = new Date();
+    const todayM = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    state.expenseForm.data = todayM === m ? `${YEAR}-${m}-${dd}` : `${YEAR}-${m}-01`;
+    state.editingExpenseId = null;
+    state.expenseModalOpen = true;
+    render();
+  }
+
+  function openEditExpenseModal(a) {
+    state.expenseForm = { data: a.data || "", descricao: a.descricao || "", categoria: a.categoria || EXPENSE_CATS[0], valor: a.valor || "", formaPagamento: a.formaPagamento || "Dinheiro", obs: a.obs || "", parcelas: a.parcelas || "", parcelaAtual: a.parcelaAtual || "1" };
+    state.editingExpenseId = a.id;
+    state.expenseModalOpen = true;
+    render();
+  }
+
+  function closeExpenseModal() { state.expenseModalOpen = false; state.editingExpenseId = null; render(); }
+
+  async function saveExpenseForm() {
+    const f = state.expenseForm;
+    if (!f.data || !f.valor) { showToast("Preencha data e valor."); return; }
+    const id = state.editingExpenseId || uid();
+    await saveAvulsoToDb(id, { ...f });
+    closeExpenseModal();
+    showToast(state.editingExpenseId ? "Despesa atualizada." : "Despesa adicionada.");
+  }
+
+  async function deleteExpense(id) {
+    await deleteAvulsoFromDb(id);
+    showToast("Despesa removida.");
+  }
+
+  function openFixedManager() { state.fixedManagerOpen = true; state.fixedForm = emptyFixedForm(); render(); }
+  function closeFixedManager() { state.fixedManagerOpen = false; render(); }
+
+  async function saveFixed() {
+    const f = state.fixedForm;
+    if (!f.nome.trim() || !f.valor) { showToast("Preencha nome e valor."); return; }
+    await saveFixedToDb(uid(), { ...f });
+    state.fixedForm = emptyFixedForm();
+    showToast("Despesa fixa adicionada.");
+    render();
+  }
+
+  async function deleteFixed(id) {
+    await deleteFixedFromDb(id);
+    showToast("Despesa fixa removida.");
+  }
+
+  /* ---------------- Render ---------------- */
+
+  function render() {
+    const root = document.getElementById("fluxo-app");
+    if (state.loading) {
+      root.innerHTML = `<div class="fx-loading">Carregando dados...</div>`;
+      return;
+    }
+
+    const t = monthTotals(state.activeMonth);
+    const list = entriesForMonth(state.activeMonth);
+    const isFinance = state.financeMode;
+
+    root.innerHTML = `
+      <div class="fx-header">
+        <div class="fx-header-row">
+          <div class="fx-title">Fluxo Mensal · <b>${YEAR}</b></div>
+          <button class="fx-mode-badge ${isFinance ? 'financeiro' : ''}" id="fx-mode-btn">${isFinance ? '★ Financeiro' : 'Modo motorista'}</button>
+        </div>
+        ${isFinance ? `
+        <div class="fx-tabs" id="fx-tabs">
+          <button class="fx-tab ${state.activeTab === 'servicos' ? 'active' : ''}" data-tab="servicos">Serviços</button>
+          <button class="fx-tab ${state.activeTab === 'despesas' ? 'active' : ''}" data-tab="despesas">Despesas</button>
+          <button class="fx-tab ${state.activeTab === 'relatorio' ? 'active' : ''}" data-tab="relatorio">Relatório</button>
+          <button class="fx-tab ${state.activeTab === 'diarias' ? 'active' : ''}" data-tab="diarias">Diárias</button>
+          <button class="fx-tab ${state.activeTab === 'combustivel' ? 'active' : ''}" data-tab="combustivel">⛽ Comb.</button>
+          <button class="fx-tab ${state.activeTab === 'importar' ? 'active' : ''}" data-tab="importar">Importar</button>
+        </div>
+        <div class="fx-months" id="fx-months"></div>` : ""}
+      </div>
+
+      <div class="fx-body">
+        ${!isFinance ? `
+        <div class="fx-tabs" style="padding:0 0 10px 0;">
+          <button class="fx-tab ${state.activeTab==='servicos'?'active':''}" data-tab="servicos">Registrar</button>
+          <button class="fx-tab ${state.activeTab==='diarias'?'active':''}" data-tab="diarias">Minhas diárias</button>
+        </div>
+        ${state.activeTab==='diarias' ? renderDiariasTab(false) : `
+        <div class="fx-driver-welcome">
+          <div class="fx-driver-welcome-icon">🚚</div>
+          <div class="fx-driver-welcome-title">Registrar serviço</div>
+          <div class="fx-driver-welcome-text">Preencha os dados do serviço que você executou. O financeiro cuida do resto.</div>
+        </div>
+        <button class="fx-add-btn fx-add-btn-big" id="fx-add-btn">+ Novo lançamento</button>`}
+        ` : `
+        <div class="fx-net-card">
+          <div><div class="fx-net-label">Líquido de ${MONTHS_FULL[state.activeMonth]}</div></div>
+          <div class="fx-net-value fluxo-num" style="color:${t.liquido >= 0 ? 'var(--accent)' : 'var(--warn)'}">${fmtMoney(t.liquido)}</div>
+        </div>
+
+        <div class="fx-totals">
+          <div class="fx-total-card">
+            <div class="fx-total-label">Total de Serviços</div>
+            <div class="fx-total-value green fluxo-num">${fmtMoney(t.totalServicos)}</div>
+            <div class="fx-total-sub">${t.count} serviço${t.count === 1 ? '' : 's'}</div>
+          </div>
+          <div class="fx-total-card">
+            <div class="fx-total-label">Total Motorista</div>
+            <div class="fx-total-value gold fluxo-num">${fmtMoney(t.totalMotorista)}</div>
+          </div>
+          <div class="fx-total-card">
+            <div class="fx-total-label">Total Manutenção</div>
+            <div class="fx-total-value red fluxo-num">${fmtMoney(t.totalManutencao)}</div>
+          </div>
+          <div class="fx-total-card">
+            <div class="fx-total-label">Total Combustível</div>
+            <div class="fx-total-value red fluxo-num">${fmtMoney(t.totalCombustivel)}</div>
+          </div>
+          <div class="fx-total-card">
+            <div class="fx-total-label">Despesas avulsas</div>
+            <div class="fx-total-value red fluxo-num">${fmtMoney(t.totalAvulsos)}</div>
+            <div class="fx-total-sub">${t.avCount} lançamento${t.avCount === 1 ? '' : 's'}</div>
+          </div>
+          <div class="fx-total-card">
+            <div class="fx-total-label">Despesas fixas</div>
+            <div class="fx-total-value red fluxo-num">${fmtMoney(t.totalFixas)}</div>
+            <div class="fx-total-sub">${state.fixedExpenses.length} item${state.fixedExpenses.length === 1 ? '' : 's'}</div>
+          </div>
+          <div class="fx-total-card wide">
+            <div class="fx-total-label">Recebido × Pendente</div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div class="fx-total-value green fluxo-num" style="font-size:17px;">${fmtMoney(t.totalPago)} <span style="font-size:10px; color:var(--text-dim); font-weight:600;">recebido</span></div>
+              <div class="fx-total-value red fluxo-num" style="font-size:17px;">${fmtMoney(t.totalPendente)} <span style="font-size:10px; color:var(--text-dim); font-weight:600;">pendente</span></div>
+            </div>
+          </div>
+        </div>
+
+        ${cardAlertHtml()}
+        ${state.activeTab === 'combustivel' ? renderCombustivelTab() : state.activeTab === 'diarias' ? renderDiariasTab(true) : state.activeTab === 'relatorio' ? renderAnnualReport(t) : state.activeTab === 'importar' ? renderImportTab() : state.activeTab === 'servicos' ? `
+        <div class="fx-row2" style="margin-bottom:12px;">
+          <button class="fx-add-btn" id="fx-drivers-btn" style="margin-bottom:0;">Motoristas (${state.drivers.length})</button>
+          <button class="fx-add-btn" id="fx-export-btn" style="margin-bottom:0;">⬇ Exportar mês</button>
+        </div>
+        <button class="fx-add-btn" id="fx-add-btn">+ Novo lançamento</button>
+        <div class="fx-section-head">
+          <div class="fx-section-title">Lançamentos de ${MONTHS_FULL[state.activeMonth]}</div>
+          <div class="fx-count-badge">${list.length}</div>
+        </div>
+        <div id="fx-entries-list"></div>
+        ` : `
+        <div class="fx-row2" style="margin-bottom:12px;">
+          <button class="fx-add-btn" id="fx-fixed-btn" style="margin-bottom:0;">⚙ Fixas (${state.fixedExpenses.length})</button>
+          <button class="fx-add-btn" id="fx-add-expense-btn" style="margin-bottom:0;">+ Nova despesa</button>
+        </div>
+
+        <div class="fx-section-head">
+          <div class="fx-section-title">Fixas mensais</div>
+          <div class="fx-count-badge">${state.fixedExpenses.length}</div>
+        </div>
+        <div id="fx-fixed-list">
+          ${state.fixedExpenses.length === 0 ? '<div class="fx-empty"><div class="fx-empty-icon">📌</div><div class="fx-empty-text">Nenhuma despesa fixa cadastrada.<br>Toque em "⚙ Fixas" para adicionar.</div></div>' :
+            state.fixedExpenses.map(f => `
+              <div class="fx-expense-card" data-fixed-id="${f.id}">
+                <div class="fx-expense-top">
+                  <div>
+                    <div class="fx-expense-name">${escapeHtml(f.nome)}</div>
+                    <div class="fx-expense-meta">Todo dia ${f.dia || "1"} · ${escapeHtml(f.formaPagamento || "")}</div>
+                  </div>
+                  <div class="fx-expense-value">${fmtMoney(f.valor)}</div>
+                </div>
+              </div>`).join("")}
+        </div>
+
+        <div class="fx-section-head" style="margin-top:24px;">
+          <div class="fx-section-title">Avulsas de ${MONTHS_FULL[state.activeMonth]}</div>
+          <div class="fx-count-badge">${t.avCount}</div>
+        </div>
+        <div id="fx-avulso-list"></div>
+        `}
+        `} : ""}
+      </div>
+
+      ${state.toast ? `<div class="fx-toast">${state.toast}</div>` : ""}
+      <div id="fx-modal-container"></div>
+    `;
+
+    // mode badge
+    document.getElementById("fx-mode-btn").addEventListener("click", () => {
+      if (state.financeMode) { exitFinanceMode(); } else { openPinScreen(); }
+    });
+
+    if (isFinance) {
+      document.getElementById("fx-tabs").querySelectorAll(".fx-tab").forEach(btn => {
+        btn.addEventListener("click", () => { state.activeTab = btn.dataset.tab; render(); });
+      });
+      if (state.activeTab === 'combustivel') {
+        document.getElementById("fx-add-comb-btn")?.addEventListener("click", openCombustivelModal);
+        document.querySelectorAll(".fx-comb-pago").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const a = state.combustivel.find(x => x.id === btn.dataset.id);
+            if (a) toggleCombustivelPago(a);
+          });
+        });
+        document.querySelectorAll(".fx-comb-edit").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const a = state.combustivel.find(x => x.id === btn.dataset.id);
+            if (a) openEditCombustivelModal(a);
+          });
+        });
+        document.querySelectorAll(".fx-comb-del").forEach(btn => {
+          btn.addEventListener("click", () => deleteCombustivel(btn.dataset.id));
+        });
+      }
+
+      if (state.activeTab === 'diarias') {
+        document.getElementById("fx-driver-filter")?.addEventListener("change", e => {
+          state.selectedDriverFilter = e.target.value; render();
+        });
+        document.getElementById("fx-add-diaria-btn")?.addEventListener("click", () => openDiariaModal());
+        document.querySelectorAll(".fx-diaria-pago").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const d = state.diarias.find(x => x.id === btn.dataset.id);
+            if (d) toggleDiariaPago(d);
+          });
+        });
+        document.querySelectorAll(".fx-diaria-edit").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const d = state.diarias.find(x => x.id === btn.dataset.id);
+            if (d) openEditDiariaModal(d);
+          });
+        });
+        document.querySelectorAll(".fx-diaria-del").forEach(btn => {
+          btn.addEventListener("click", () => deleteDiaria(btn.dataset.id));
+        });
+      }
+
+      if (state.activeTab === 'importar') {
+        document.getElementById("fx-import-file")?.addEventListener("change", e => {
+          const file = e.target.files[0];
+          if (file) handlePdfImport(file);
+        });
+        document.getElementById("fx-import-clear-err")?.addEventListener("click", () => {
+          state.importError = "";
+          state.importProgress = 0;
+          render();
+        });
+        document.querySelectorAll("[data-import-idx]").forEach(btn => {
+          btn.addEventListener("click", () => confirmImport(parseInt(btn.dataset.importIdx)));
+        });
+        document.querySelectorAll("[data-dismiss-idx]").forEach(btn => {
+          btn.addEventListener("click", () => dismissImport(parseInt(btn.dataset.dismissIdx)));
+        });
+      }
+
+      const monthsEl = document.getElementById("fx-months");
+      monthsEl.innerHTML = MONTHS.map((m, i) =>
+        `<button class="fx-month-btn ${i === state.activeMonth ? 'active' : ''}" data-month="${i}">${m}</button>`
+      ).join("");
+      monthsEl.querySelectorAll(".fx-month-btn").forEach(btn => {
+        btn.addEventListener("click", () => { state.activeMonth = parseInt(btn.dataset.month, 10); render(); });
+      });
+
+      if (state.activeTab === 'servicos') {
+        document.getElementById("fx-drivers-btn").addEventListener("click", openDriverManager);
+        document.getElementById("fx-export-btn").addEventListener("click", exportMonthToCsv);
+        document.getElementById("fx-add-btn").addEventListener("click", openNewModal);
+
+        const listEl = document.getElementById("fx-entries-list");
+        if (list.length === 0) {
+          listEl.innerHTML = `<div class="fx-empty"><div class="fx-empty-icon">📋</div><div class="fx-empty-text">Nenhum lançamento em ${MONTHS_FULL[state.activeMonth]} ainda.</div></div>`;
+        } else {
+          listEl.innerHTML = list.map(e => entryCardHtml(e, isFinance)).join("");
+          list.forEach(e => {
+            const card = listEl.querySelector(`[data-entry-id="${e.id}"]`);
+            if (!card) return;
+            card.querySelector(".fx-edit-trigger")?.addEventListener("click", () => openEditModal(e));
+            card.querySelector(".fx-nfse-trigger")?.addEventListener("click", () => {
+              if (e.notaEmitida) { marcarNotaEmitida(e); }
+              else { emitirNFSe(e); }
+            });
+            card.querySelector("[data-photo-trigger]")?.addEventListener("click", () => { state.photoLightbox = e.foto; render(); });
+            const delBtn = card.querySelector(".fx-del-trigger");
+            if (delBtn) {
+              delBtn.addEventListener("click", () => {
+                if (state.confirmDeleteId === e.id) { confirmDelete(e.id); }
+                else { state.confirmDeleteId = e.id; render(); }
+              });
+            }
+          });
+        }
+      } else {
+        document.getElementById("fx-fixed-btn").addEventListener("click", openFixedManager);
+        document.getElementById("fx-add-expense-btn").addEventListener("click", openExpenseModal);
+
+        const avList = avulsosForMonth(state.activeMonth);
+        const avEl = document.getElementById("fx-avulso-list");
+        if (avList.length === 0) {
+          avEl.innerHTML = `<div class="fx-empty"><div class="fx-empty-icon">💸</div><div class="fx-empty-text">Nenhuma despesa avulsa em ${MONTHS_FULL[state.activeMonth]}.<br>Toque em "+ Nova despesa".</div></div>`;
+        } else {
+          avEl.innerHTML = avList.map(a => {
+            const hasParcelas = a.parcelas && parseInt(a.parcelas) > 1;
+            const pAtual = parseInt(a.parcelaAtual || 1);
+            const pTotal = parseInt(a.parcelas || 1);
+            const done = hasParcelas && pAtual > pTotal;
+            if (done) return ""; // auto-hide when finished
+            const parcelaPct = hasParcelas ? Math.round((pAtual - 1) / pTotal * 100) : 0;
+            return `
+            <div class="fx-expense-card" data-av-id="${a.id}">
+              <div class="fx-expense-top">
+                <div style="flex:1;min-width:0;">
+                  <div class="fx-expense-name">${escapeHtml(a.categoria || a.descricao || "")}</div>
+                  <div class="fx-expense-meta">${fmtDateShort(a.data)}${a.descricao ? ' · ' + escapeHtml(a.descricao) : ''} · ${escapeHtml(a.formaPagamento || "")}</div>
+                  ${hasParcelas ? `
+                  <div class="fx-parcela-bar-wrap">
+                    <div class="fx-parcela-bar" style="width:${parcelaPct}%"></div>
+                  </div>
+                  <div class="fx-parcela-label">${pAtual <= pTotal ? `Parcela ${pAtual} de ${pTotal}` : 'Quitado ✓'}</div>` : ""}
+                </div>
+                <div class="fx-expense-value">${fmtMoney(a.valor)}</div>
+              </div>
+              <div class="fx-entry-actions">
+                <button class="fx-icon-btn fx-av-edit" data-id="${a.id}">Editar</button>
+                <button class="fx-icon-btn danger fx-av-del" data-id="${a.id}">Excluir</button>
+              </div>
+            </div>`; }).join("");
+          avEl.querySelectorAll(".fx-av-edit").forEach(btn => {
+            btn.addEventListener("click", () => { const a = avList.find(x => x.id === btn.dataset.id); if (a) openEditExpenseModal(a); });
+          });
+          avEl.querySelectorAll(".fx-av-del").forEach(btn => {
+            btn.addEventListener("click", () => deleteExpense(btn.dataset.id));
+          });
+        }
+
+        document.querySelectorAll("[data-fixed-id]").forEach(card => {
+          // fixed expenses don't have inline delete yet — managed via openFixedManager
+        });
+      }
+    } else {
+      // modo motorista
+      document.getElementById("fx-tabs")?.querySelectorAll(".fx-tab").forEach(btn => {
+        btn.addEventListener("click", () => { state.activeTab = btn.dataset.tab; render(); });
+      });
+      if (state.activeTab === 'combustivel') {
+        document.getElementById("fx-add-comb-btn")?.addEventListener("click", openCombustivelModal);
+        document.querySelectorAll(".fx-comb-pago").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const a = state.combustivel.find(x => x.id === btn.dataset.id);
+            if (a) toggleCombustivelPago(a);
+          });
+        });
+        document.querySelectorAll(".fx-comb-edit").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const a = state.combustivel.find(x => x.id === btn.dataset.id);
+            if (a) openEditCombustivelModal(a);
+          });
+        });
+        document.querySelectorAll(".fx-comb-del").forEach(btn => {
+          btn.addEventListener("click", () => deleteCombustivel(btn.dataset.id));
+        });
+      }
+
+      if (state.activeTab === 'diarias') {
+        document.getElementById("fx-driver-filter")?.addEventListener("change", e => {
+          state.selectedDriverFilter = e.target.value; render();
+        });
+      } else {
+        document.getElementById("fx-add-btn")?.addEventListener("click", openNewModal);
+      }
+    }
+
+    // overlays (priority: modal > driver manager > pin > lightbox)
+    const modalContainer = document.getElementById("fx-modal-container");
+    if (state.modalOpen) {
+      modalContainer.innerHTML = modalHtml();
+      bindModalEvents();
+    } else if (state.expenseModalOpen) {
+      modalContainer.innerHTML = expenseModalHtml();
+      bindExpenseModalEvents();
+    } else if (state.fixedManagerOpen) {
+      modalContainer.innerHTML = fixedManagerHtml();
+      bindFixedManagerEvents();
+    } else if (state.combustivelModalOpen) {
+      modalContainer.innerHTML = combustivelModalHtml();
+      bindCombustivelModalEvents();
+    } else if (state.diariaModalOpen) {
+      modalContainer.innerHTML = diariaModalHtml();
+      bindDiariaModalEvents();
+    } else if (state.driverManagerOpen) {
+      modalContainer.innerHTML = driverManagerHtml();
+      bindDriverManagerEvents();
+    } else if (state.pinScreen) {
+      modalContainer.innerHTML = pinScreenHtml();
+      bindPinScreenEvents();
+    } else if (state.photoLightbox) {
+      modalContainer.innerHTML = `
+        <div class="fx-overlay center" id="fx-lightbox-overlay">
+          <img src="${state.photoLightbox}" style="max-width:100%; max-height:80vh; border-radius:12px; display:block;">
+        </div>`;
+      document.getElementById("fx-lightbox-overlay").addEventListener("click", () => {
+        state.photoLightbox = null;
+        render();
+      });
+    }
+  }
+
+  function entryCardHtml(e, isFinance) {
+    const isConfirming = state.confirmDeleteId === e.id;
+    const needsFill = !e.valor || Number(e.valor) === 0;
+    const innerHtml = `
+        <div class="fx-entry-top">
+          <div>
+            <div class="fx-entry-client">${escapeHtml(e.cliente)}</div>
+            <div class="fx-entry-date">${fmtDateShort(e.data)}</div>
+          </div>
+          ${needsFill ? `<div class="fx-entry-value fluxo-num" style="color:var(--text-dim);font-size:13px;">a preencher</div>` : `<div class="fx-entry-value fluxo-num">${fmtMoney(e.valor)}</div>`}
+        </div>
+        ${e.servico ? `<div class="fx-entry-desc">${escapeHtml(e.servico)}</div>` : ""}
+        <div class="fx-tags">
+          ${needsFill ? `<span class="fx-tag unpaid">⏱ Aguardando valor</span>` : `<span class="fx-tag ${e.pago ? 'paid' : 'unpaid'}">${e.pago ? '✓ Pago' : '⏱ Pendente'}</span>`}
+          ${e.formaPagamento ? `<span class="fx-tag">${escapeHtml(e.formaPagamento)}</span>` : ""}
+          ${e.motoristaNome ? `<span class="fx-tag driver">${escapeHtml(e.motoristaNome)}</span>` : ""}
+          ${e.notaEmitida ? '<span class="fx-tag paid">✓ NFS-e</span>' : (isFinance ? '<span class="fx-tag unpaid">NFS-e pendente</span>' : "")}
+        </div>
+        ${isFinance ? `
+        <div class="fx-entry-breakdown">
+          <div class="fx-breakdown-item">
+            <div class="fx-breakdown-label">Combustível ${e.combustivelPago?'<span style="color:var(--accent);font-size:9px;">✓ pago</span>':'<span style="color:var(--warn);font-size:9px;">pendente</span>'}</div>
+            <div class="fx-breakdown-value fluxo-num">${fmtMoney(e.combustivelValor)}</div>
+          </div>
+          <div class="fx-breakdown-item">
+            <div class="fx-breakdown-label">Motorista ${e.motoristaPago?'<span style="color:var(--accent);font-size:9px;">✓ pago</span>':'<span style="color:var(--warn);font-size:9px;">pendente</span>'}</div>
+            <div class="fx-breakdown-value fluxo-num">${fmtMoney(e.valorMotorista)}</div>
+          </div>
+          <div class="fx-breakdown-item">
+            <div class="fx-breakdown-label">Manutenção ${e.manutencaoPago?'<span style="color:var(--accent);font-size:9px;">✓ pago</span>':'<span style="color:var(--warn);font-size:9px;">pendente</span>'}</div>
+            <div class="fx-breakdown-value fluxo-num">${fmtMoney(e.manutencao)}</div>
+          </div>
+        </div>` : ""}
+        <div class="fx-entry-actions">
+          <button class="fx-icon-btn fx-edit-trigger">Editar</button>
+          ${isFinance ? '<button class="fx-icon-btn fx-nfse-trigger" style="color:' + (e.notaEmitida ? 'var(--accent)' : 'var(--gold)') + '">' + (e.notaEmitida ? '✓ Nota emitida' : 'Emitir NFS-e') + '</button>' : ""}
+          <button class="fx-icon-btn danger fx-del-trigger">${isConfirming ? 'Confirmar exclusão?' : 'Excluir'}</button>
+        </div>`;
+    return `
+      <div class="fx-entry" data-entry-id="${e.id}">
+        ${e.foto ? `
+          <div class="fx-entry-with-photo">
+            <div class="fx-entry-inner">${innerHtml}</div>
+            <img src="${e.foto}" class="fx-entry-photo-thumb" data-photo-trigger="${e.id}">
+          </div>` : innerHtml}
+      </div>`;
+  }
+
+  function modalHtml() {
+    const f = state.form;
+    const isFinance = state.financeMode;
+    return `
+      <div class="fx-overlay" id="fx-overlay">
+        <div class="fx-modal" id="fx-modal-inner">
+          <div class="fx-modal-head">
+            <div class="fx-modal-title">${state.editingId ? 'Editar lançamento' : 'Novo lançamento'}</div>
+            <button class="fx-close-btn" id="fx-close-btn">✕</button>
+          </div>
+
+          <div class="fx-field">
+            <label class="fx-field-label">Data do serviço</label>
+            <input type="date" class="fx-input" id="fld-data" value="${f.data}">
+          </div>
+
+          <div class="fx-field">
+            <label class="fx-field-label">Cliente</label>
+            <input type="text" class="fx-input" id="fld-cliente" placeholder="Nome do cliente" value="${escapeAttr(f.cliente)}">
+          </div>
+
+          <div class="fx-field">
+            <label class="fx-field-label">Motorista</label>
+            ${state.drivers.length > 0 ? `
+              <select class="fx-select" id="fld-motorista">
+                ${state.drivers.map(d => `<option value="${escapeAttr(d)}" ${f.motoristaNome === d ? 'selected' : ''}>${escapeHtml(d)}</option>`).join("")}
+              </select>
+            ` : `
+              <div class="fx-locked-note">Nenhum motorista cadastrado ainda. ${isFinance ? 'Use "Gerenciar motoristas" para adicionar.' : 'Peça ao gestor para cadastrar os motoristas.'}</div>
+            `}
+          </div>
+
+          <div class="fx-field">
+            <label class="fx-field-label">CNPJ / CPF do cliente (para NFS-e)</label>
+            <input type="text" class="fx-input" id="fld-cnpj" placeholder="Ex: 00.000.000/0001-00 ou 000.000.000-00" value="${escapeAttr(f.cnpjCliente)}">
+          </div>
+
+          <div class="fx-field">
+            <label class="fx-field-label">Serviço executado</label>
+            <select class="fx-select" id="fld-servico">
+              ${SERVICES.map(s => `<option value="${escapeAttr(s)}" ${f.servico === s ? 'selected' : ''}>${escapeHtml(s)}</option>`).join("")}
+            </select>
+          </div>
+          ${f.servico === "Outro" ? `
+          <div class="fx-field">
+            <label class="fx-field-label">Descreva o serviço</label>
+            <input type="text" class="fx-input" id="fld-servico-outro" placeholder="Descreva o serviço executado" value="${escapeAttr(f.servicoOutro)}">
+          </div>` : ""}
+
+          <div class="fx-field">
+            <label class="fx-field-label">Foto do serviço</label>
+            ${f.foto ? `
+              <div class="fx-photo-preview-wrap">
+                <img src="${f.foto}" class="fx-photo-preview" id="fld-foto-preview">
+                <button type="button" class="fx-photo-remove" id="fld-foto-remove">Remover foto</button>
+              </div>
+            ` : `
+              <label class="fx-photo-upload" for="fld-foto-input">
+                <span class="fx-photo-upload-icon">📷</span>
+                <span>Adicionar foto</span>
+              </label>
+            `}
+            <input type="file" accept="image/*" id="fld-foto-input" style="display:none;">
+          </div>
+
+          ${isFinance ? `
+          <div class="fx-field">
+            <label class="fx-field-label">Valor do serviço (R$)</label>
+            <input type="number" step="0.01" class="fx-input" id="fld-valor" placeholder="0,00" value="${f.valor}">
+          </div>
+
+          <div class="fx-row2">
+            <div class="fx-field">
+              <label class="fx-field-label">Forma de pagamento</label>
+              <select class="fx-select" id="fld-forma">
+                ${PAY_METHODS.map(m => `<option value="${m}" ${f.formaPagamento === m ? 'selected' : ''}>${m}</option>`).join("")}
+              </select>
+            </div>
+            <div class="fx-field">
+              <label class="fx-field-label">Status</label>
+              <div class="fx-toggle-group">
+                <button type="button" class="fx-toggle-btn ${f.pago ? 'sel-paid' : ''}" id="fld-pago-sim">Pago</button>
+                <button type="button" class="fx-toggle-btn ${!f.pago ? 'sel-unpaid' : ''}" id="fld-pago-nao">Pendente</button>
+              </div>
+            </div>
+          </div>
+          ` : `
+          <div class="fx-locked-note">Valor, forma de pagamento e status são preenchidos pelo financeiro depois.</div>
+          `}
+
+          ${isFinance ? `
+          <div class="fx-divider">
+            <div class="fx-divider-line"></div>
+            <div class="fx-divider-text">Custos · Financeiro</div>
+            <div class="fx-divider-line"></div>
+          </div>
+
+          <div class="fx-row2">
+            <div class="fx-field">
+              <label class="fx-field-label">Combustível (R$)</label>
+              <input type="number" step="0.01" class="fx-input" id="fld-combvalor" placeholder="0,00" value="${f.combustivelValor}">
+            </div>
+            <div class="fx-field">
+              <label class="fx-field-label">Data combustível</label>
+              <input type="date" class="fx-input" id="fld-combdata" value="${f.combustivelData}">
+            </div>
+          </div>
+
+          <div class="fx-field">
+            <label class="fx-field-label">Valor do motorista (R$)</label>
+            <input type="number" step="0.01" class="fx-input" id="fld-motoristavalor" placeholder="0,00" value="${f.valorMotorista}">
+          </div>
+
+          <div class="fx-field">
+            <label class="fx-field-label">Manutenção (R$)</label>
+            <input type="number" step="0.01" class="fx-input" id="fld-manutencao" placeholder="0,00" value="${f.manutencao}">
+          </div>
+
+          <div class="fx-divider"><div class="fx-divider-line"></div><div class="fx-divider-text">Status dos custos</div><div class="fx-divider-line"></div></div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:13px;color:var(--text-dim);">Combustível pago?</span>
+              <div class="fx-toggle-group" style="width:160px;">
+                <button type="button" class="fx-toggle-btn ${f.combustivelPago?'sel-paid':''}" id="fld-comb-pago-sim">Sim</button>
+                <button type="button" class="fx-toggle-btn ${!f.combustivelPago?'sel-unpaid':''}" id="fld-comb-pago-nao">Não</button>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:13px;color:var(--text-dim);">Motorista pago?</span>
+              <div class="fx-toggle-group" style="width:160px;">
+                <button type="button" class="fx-toggle-btn ${f.motoristaPago?'sel-paid':''}" id="fld-mot-pago-sim">Sim</button>
+                <button type="button" class="fx-toggle-btn ${!f.motoristaPago?'sel-unpaid':''}" id="fld-mot-pago-nao">Não</button>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:13px;color:var(--text-dim);">Manutenção paga?</span>
+              <div class="fx-toggle-group" style="width:160px;">
+                <button type="button" class="fx-toggle-btn ${f.manutencaoPago?'sel-paid':''}" id="fld-man-pago-sim">Sim</button>
+                <button type="button" class="fx-toggle-btn ${!f.manutencaoPago?'sel-unpaid':''}" id="fld-man-pago-nao">Não</button>
+              </div>
+            </div>
+          </div>
+          ` : `
+          <div class="fx-locked-note">Combustível, valor do motorista e manutenção são preenchidos apenas no modo financeiro.</div>
+          `}
+
+          <button class="fx-save-btn ${isFinance ? 'gold' : ''}" id="fx-save-btn">${state.editingId ? 'Salvar alterações' : 'Adicionar lançamento'}</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function bindModalEvents() {
+    const overlay = document.getElementById("fx-overlay");
+    overlay.addEventListener("click", (ev) => { if (ev.target === overlay) closeModal(); });
+    document.getElementById("fx-close-btn").addEventListener("click", closeModal);
+
+    document.getElementById("fld-data").addEventListener("input", (e) => setField("data", e.target.value));
+    document.getElementById("fld-cliente").addEventListener("input", (e) => setField("cliente", e.target.value));
+    document.getElementById("fld-cnpj")?.addEventListener("input", (e) => setField("cnpjCliente", e.target.value));
+    document.getElementById("fld-motorista")?.addEventListener("change", (e) => setField("motoristaNome", e.target.value));
+    document.getElementById("fld-servico").addEventListener("change", (e) => {
+      setField("servico", e.target.value);
+      render();
+    });
+    document.getElementById("fld-servico-outro")?.addEventListener("input", (e) => setField("servicoOutro", e.target.value));
+
+    document.getElementById("fld-foto-input")?.addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const compressed = await compressImage(file);
+        setField("foto", compressed);
+        render();
+      } catch (err) {
+        showToast("Não foi possível carregar a foto.");
+      }
+    });
+    document.getElementById("fld-foto-remove")?.addEventListener("click", () => {
+      setField("foto", "");
+      render();
+    });
+
+    document.getElementById("fld-valor")?.addEventListener("input", (e) => setField("valor", e.target.value));
+    document.getElementById("fld-forma")?.addEventListener("change", (e) => setField("formaPagamento", e.target.value));
+    document.getElementById("fld-pago-sim")?.addEventListener("click", () => { setField("pago", true); render(); });
+    document.getElementById("fld-pago-nao")?.addEventListener("click", () => { setField("pago", false); render(); });
+
+    document.getElementById("fld-comb-pago-sim")?.addEventListener("click", () => { setField("combustivelPago", true); render(); });
+    document.getElementById("fld-comb-pago-nao")?.addEventListener("click", () => { setField("combustivelPago", false); render(); });
+    document.getElementById("fld-mot-pago-sim")?.addEventListener("click", () => { setField("motoristaPago", true); render(); });
+    document.getElementById("fld-mot-pago-nao")?.addEventListener("click", () => { setField("motoristaPago", false); render(); });
+    document.getElementById("fld-man-pago-sim")?.addEventListener("click", () => { setField("manutencaoPago", true); render(); });
+    document.getElementById("fld-man-pago-nao")?.addEventListener("click", () => { setField("manutencaoPago", false); render(); });
+    document.getElementById("fld-combvalor")?.addEventListener("input", (e) => setField("combustivelValor", e.target.value));
+    document.getElementById("fld-combdata")?.addEventListener("input", (e) => setField("combustivelData", e.target.value));
+    document.getElementById("fld-motoristavalor")?.addEventListener("input", (e) => setField("valorMotorista", e.target.value));
+    document.getElementById("fld-manutencao")?.addEventListener("input", (e) => setField("manutencao", e.target.value));
+
+    document.getElementById("fx-save-btn").addEventListener("click", saveForm);
+  }
+
+  function driverManagerHtml() {
+    return `
+      <div class="fx-overlay" id="fx-dm-overlay">
+        <div class="fx-modal" id="fx-dm-modal">
+          <div class="fx-modal-head">
+            <div class="fx-modal-title">Motoristas</div>
+            <button class="fx-close-btn" id="fx-dm-close">✕</button>
+          </div>
+          ${state.drivers.length === 0 ? `<div class="fx-locked-note">Nenhum motorista cadastrado ainda.</div>` : ""}
+          <div id="fx-dm-list">
+            ${state.drivers.map(d => `
+              <div class="fx-driver-row" data-driver="${escapeAttr(d)}">
+                <span class="fx-driver-name">${escapeHtml(d)}</span>
+                <button class="fx-driver-del" data-del="${escapeAttr(d)}">Remover</button>
+              </div>
+            `).join("")}
+          </div>
+          <div class="fx-driver-add-row">
+            <input type="text" class="fx-input" id="fx-dm-input" placeholder="Nome do motorista" value="${escapeAttr(state.newDriverName)}">
+            <button class="fx-driver-add-btn" id="fx-dm-add">Adicionar</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function bindDriverManagerEvents() {
+    const overlay = document.getElementById("fx-dm-overlay");
+    overlay.addEventListener("click", (ev) => { if (ev.target === overlay) closeDriverManager(); });
+    document.getElementById("fx-dm-close").addEventListener("click", closeDriverManager);
+    document.getElementById("fx-dm-input").addEventListener("input", (e) => { state.newDriverName = e.target.value; });
+    document.getElementById("fx-dm-add").addEventListener("click", addDriver);
+    document.querySelectorAll("[data-del]").forEach(btn => {
+      btn.addEventListener("click", () => removeDriver(btn.dataset.del));
+    });
+  }
+
+  function expenseModalHtml() {
+    const f = state.expenseForm;
+    const PAY = ["Dinheiro","Pix","Cartão de crédito","Cartão de débito","Transferência","Outro"];
+    return `
+      <div class="fx-overlay" id="fx-exp-overlay">
+        <div class="fx-modal">
+          <div class="fx-modal-head">
+            <div class="fx-modal-title">${state.editingExpenseId ? 'Editar despesa' : 'Nova despesa avulsa'}</div>
+            <button class="fx-close-btn" id="fx-exp-close">✕</button>
+          </div>
+          <div class="fx-row2">
+            <div class="fx-field">
+              <label class="fx-field-label">Data</label>
+              <input type="date" class="fx-input" id="exp-data" value="${f.data}">
+            </div>
+            <div class="fx-field">
+              <label class="fx-field-label">Valor (R$)</label>
+              <input type="number" step="0.01" class="fx-input" id="exp-valor" placeholder="0,00" value="${f.valor}">
+            </div>
+          </div>
+          <div class="fx-field">
+            <label class="fx-field-label">Categoria</label>
+            <select class="fx-select" id="exp-cat">
+              ${EXPENSE_CATS.map(cat => `<option value="${escapeAttr(cat)}" ${f.categoria === cat ? 'selected' : ''}>${escapeHtml(cat)}</option>`).join("")}
+            </select>
+          </div>
+          <div class="fx-field">
+            <label class="fx-field-label">Descrição (opcional)</label>
+            <input type="text" class="fx-input" id="exp-desc" placeholder="Ex: almoço na estrada SP" value="${escapeAttr(f.descricao)}">
+          </div>
+          <div class="fx-field">
+            <label class="fx-field-label">Forma de pagamento</label>
+            <select class="fx-select" id="exp-pag">
+              ${PAY.map(p => `<option value="${p}" ${f.formaPagamento === p ? 'selected' : ''}>${p}</option>`).join("")}
+            </select>
+          </div>
+          ${(f.formaPagamento === "Cartão de crédito") ? `
+          <div class="fx-field">
+            <label class="fx-field-label">Qual cartão?</label>
+            <div class="fx-toggle-group">
+              <button type="button" class="fx-toggle-btn ${f.cartao==="1"||!f.cartao?'sel-paid':''}" id="exp-card1">Cartão 1 (dia 8)</button>
+              <button type="button" class="fx-toggle-btn ${f.cartao==="2"?'sel-paid':''}" id="exp-card2">Cartão 2 (dia 10)</button>
+            </div>
+          </div>
+          <div class="fx-row2">
+            <div class="fx-field">
+              <label class="fx-field-label">Total de parcelas</label>
+              <input type="number" min="1" max="60" class="fx-input" id="exp-parcelas" placeholder="Ex: 12" value="${escapeAttr(f.parcelas)}">
+            </div>
+            <div class="fx-field">
+              <label class="fx-field-label">Parcela atual</label>
+              <input type="number" min="1" max="60" class="fx-input" id="exp-parcela-atual" placeholder="Ex: 1" value="${escapeAttr(f.parcelaAtual || '1')}">
+            </div>
+          </div>
+          <div class="fx-locked-note" style="font-size:11px;">Todo mês atualize a "Parcela atual" para acompanhar. Quando ultrapassar o total, a despesa some automaticamente.</div>` : ""}
+          <button class="fx-save-btn gold" id="exp-save">${state.editingExpenseId ? 'Salvar alterações' : 'Adicionar despesa'}</button>
+        </div>
+      </div>`;
+  }
+
+  function bindExpenseModalEvents() {
+    document.getElementById("fx-exp-overlay").addEventListener("click", e => { if (e.target.id === "fx-exp-overlay") closeExpenseModal(); });
+    document.getElementById("fx-exp-close").addEventListener("click", closeExpenseModal);
+    document.getElementById("exp-data").addEventListener("input", e => state.expenseForm.data = e.target.value);
+    document.getElementById("exp-valor").addEventListener("input", e => state.expenseForm.valor = e.target.value);
+    document.getElementById("exp-cat").addEventListener("change", e => state.expenseForm.categoria = e.target.value);
+    document.getElementById("exp-desc").addEventListener("input", e => state.expenseForm.descricao = e.target.value);
+    document.getElementById("exp-pag").addEventListener("change", e => {
+      state.expenseForm.formaPagamento = e.target.value;
+      if (!state.expenseForm.cartao) state.expenseForm.cartao = "1";
+      render();
+    });
+    document.getElementById("exp-card1")?.addEventListener("click", () => { state.expenseForm.cartao = "1"; render(); });
+    document.getElementById("exp-card2")?.addEventListener("click", () => { state.expenseForm.cartao = "2"; render(); });
+    document.getElementById("exp-parcelas")?.addEventListener("input", e => state.expenseForm.parcelas = e.target.value);
+    document.getElementById("exp-parcela-atual")?.addEventListener("input", e => state.expenseForm.parcelaAtual = e.target.value);
+    document.getElementById("exp-save").addEventListener("click", saveExpenseForm);
+  }
+
+  function fixedManagerHtml() {
+    const PAY = ["Débito automático","Boleto","Pix","Cartão de crédito","Outro"];
+    const f = state.fixedForm;
+    return `
+      <div class="fx-overlay" id="fx-fm-overlay">
+        <div class="fx-modal">
+          <div class="fx-modal-head">
+            <div class="fx-modal-title">Despesas fixas mensais</div>
+            <button class="fx-close-btn" id="fx-fm-close">✕</button>
+          </div>
+          <div style="font-size:12px;color:var(--text-dim);margin-bottom:14px;">Entram automaticamente no total todo mês.</div>
+          ${state.fixedExpenses.length === 0 ? '<div class="fx-locked-note">Nenhuma despesa fixa ainda.</div>' :
+            state.fixedExpenses.map(fx => `
+              <div class="fx-driver-row">
+                <div>
+                  <div class="fx-driver-name">${escapeHtml(fx.nome)}</div>
+                  <div style="font-size:11px;color:var(--text-dim);">Dia ${fx.dia || 1} · ${escapeHtml(fx.formaPagamento || "")} · ${fmtMoney(fx.valor)}</div>
+                </div>
+                <button class="fx-driver-del" data-fxdel="${fx.id}">Remover</button>
+              </div>`).join("")}
+          <div class="fx-divider"><div class="fx-divider-line"></div><div class="fx-divider-text">Adicionar nova</div><div class="fx-divider-line"></div></div>
+          <div class="fx-field">
+            <label class="fx-field-label">Nome da despesa</label>
+            <input type="text" class="fx-input" id="fx-fm-nome" placeholder="Ex: Aluguel caminhão, Seguro..." value="${escapeAttr(f.nome)}">
+          </div>
+          <div class="fx-row2">
+            <div class="fx-field">
+              <label class="fx-field-label">Valor (R$)</label>
+              <input type="number" step="0.01" class="fx-input" id="fx-fm-valor" placeholder="0,00" value="${f.valor}">
+            </div>
+            <div class="fx-field">
+              <label class="fx-field-label">Vencimento (dia)</label>
+              <input type="number" min="1" max="31" class="fx-input" id="fx-fm-dia" placeholder="1" value="${f.dia}">
+            </div>
+          </div>
+          <div class="fx-field">
+            <label class="fx-field-label">Forma de pagamento</label>
+            <select class="fx-select" id="fx-fm-pag">
+              ${PAY.map(p => `<option value="${p}" ${f.formaPagamento === p ? 'selected' : ''}>${p}</option>`).join("")}
+            </select>
+          </div>
+          <button class="fx-save-btn" id="fx-fm-save">Adicionar despesa fixa</button>
+        </div>
+      </div>`;
+  }
+
+  function bindFixedManagerEvents() {
+    document.getElementById("fx-fm-overlay").addEventListener("click", e => { if (e.target.id === "fx-fm-overlay") closeFixedManager(); });
+    document.getElementById("fx-fm-close").addEventListener("click", closeFixedManager);
+    document.getElementById("fx-fm-nome").addEventListener("input", e => state.fixedForm.nome = e.target.value);
+    document.getElementById("fx-fm-valor").addEventListener("input", e => state.fixedForm.valor = e.target.value);
+    document.getElementById("fx-fm-dia").addEventListener("input", e => state.fixedForm.dia = e.target.value);
+    document.getElementById("fx-fm-pag").addEventListener("change", e => state.fixedForm.formaPagamento = e.target.value);
+    document.getElementById("fx-fm-save").addEventListener("click", saveFixed);
+    document.querySelectorAll("[data-fxdel]").forEach(btn => {
+      btn.addEventListener("click", () => deleteFixed(btn.dataset.fxdel));
+    });
+  }
+
+  function combustivelModalHtml() {
+    const f = state.combustivelForm;
+    const isCartao = f.formaPagamento === "Cartão de crédito";
+    const PAY = ["Pix","Dinheiro","Cartão de crédito","Cartão de débito","Transferência"];
+    return `
+      <div class="fx-overlay" id="fx-comb-overlay">
+        <div class="fx-modal">
+          <div class="fx-modal-head">
+            <div class="fx-modal-title">${state.editingCombustivelId ? 'Editar abastecimento' : '⛽ Novo abastecimento'}</div>
+            <button class="fx-close-btn" id="fx-comb-close">✕</button>
+          </div>
+
+          <div class="fx-row2">
+            <div class="fx-field">
+              <label class="fx-field-label">Data</label>
+              <input type="date" class="fx-input" id="comb-data" value="${f.data}">
+            </div>
+            <div class="fx-field">
+              <label class="fx-field-label">Litros</label>
+              <input type="number" step="0.01" class="fx-input" id="comb-litros" placeholder="Ex: 50" value="${f.litros}">
+            </div>
+          </div>
+
+          <div class="fx-field">
+            <label class="fx-field-label">Valor total (R$)</label>
+            <input type="number" step="0.01" class="fx-input" id="comb-valor" placeholder="0,00" value="${f.valorTotal}">
+          </div>
+
+          <div class="fx-field">
+            <label class="fx-field-label">Posto (opcional)</label>
+            <input type="text" class="fx-input" id="comb-posto" placeholder="Nome do posto" value="${escapeAttr(f.posto)}">
+          </div>
+
+          ${state.drivers.length > 0 ? `
+          <div class="fx-field">
+            <label class="fx-field-label">Motorista</label>
+            <select class="fx-select" id="comb-motorista">
+              <option value="">Sem motorista</option>
+              ${state.drivers.map(d=>`<option value="${d}" ${f.motoristaNome===d?'selected':''}>${d}</option>`).join("")}
+            </select>
+          </div>` : ""}
+
+          <div class="fx-field">
+            <label class="fx-field-label">Forma de pagamento</label>
+            <select class="fx-select" id="comb-pag">
+              ${PAY.map(p=>`<option value="${p}" ${f.formaPagamento===p?'selected':''}>${p}</option>`).join("")}
+            </select>
+          </div>
+
+          ${isCartao ? `
+          <div class="fx-field">
+            <label class="fx-field-label">Qual cartão?</label>
+            <div class="fx-toggle-group">
+              <button type="button" class="fx-toggle-btn ${f.cartao!=="2"?'sel-paid':''}" id="comb-card1">Cartão 1 (dia 8)</button>
+              <button type="button" class="fx-toggle-btn ${f.cartao==="2"?'sel-paid':''}" id="comb-card2">Cartão 2 (dia 10)</button>
+            </div>
+          </div>` : ""}
+
+          <div class="fx-field">
+            <label class="fx-field-label">Status do pagamento</label>
+            <div class="fx-toggle-group">
+              <button type="button" class="fx-toggle-btn ${f.pago?'sel-paid':''}" id="comb-pago-sim">✓ Pago</button>
+              <button type="button" class="fx-toggle-btn ${!f.pago?'sel-unpaid':''}" id="comb-pago-nao">⏱ Pendente</button>
+            </div>
+          </div>
+
+          <button class="fx-save-btn" id="comb-save">${state.editingCombustivelId ? 'Salvar' : 'Registrar abastecimento'}</button>
+        </div>
+      </div>`;
+  }
+
+  function bindCombustivelModalEvents() {
+    document.getElementById("fx-comb-overlay").addEventListener("click", e => { if (e.target.id==="fx-comb-overlay") closeCombustivelModal(); });
+    document.getElementById("fx-comb-close").addEventListener("click", closeCombustivelModal);
+    document.getElementById("comb-data").addEventListener("input", e => state.combustivelForm.data = e.target.value);
+    document.getElementById("comb-litros").addEventListener("input", e => state.combustivelForm.litros = e.target.value);
+    document.getElementById("comb-valor").addEventListener("input", e => state.combustivelForm.valorTotal = e.target.value);
+    document.getElementById("comb-posto").addEventListener("input", e => state.combustivelForm.posto = e.target.value);
+    document.getElementById("comb-motorista")?.addEventListener("change", e => state.combustivelForm.motoristaNome = e.target.value);
+    document.getElementById("comb-pag").addEventListener("change", e => { state.combustivelForm.formaPagamento = e.target.value; render(); });
+    document.getElementById("comb-card1")?.addEventListener("click", () => { state.combustivelForm.cartao = "1"; render(); });
+    document.getElementById("comb-card2")?.addEventListener("click", () => { state.combustivelForm.cartao = "2"; render(); });
+    document.getElementById("comb-pago-sim").addEventListener("click", () => { state.combustivelForm.pago = true; render(); });
+    document.getElementById("comb-pago-nao").addEventListener("click", () => { state.combustivelForm.pago = false; render(); });
+    document.getElementById("comb-save").addEventListener("click", saveCombustivelForm);
+  }
+
+  function diariaModalHtml() {
+    const f = state.diariaForm;
+    const isFinance = state.financeMode;
+    return `
+      <div class="fx-overlay" id="fx-diaria-overlay">
+        <div class="fx-modal">
+          <div class="fx-modal-head">
+            <div class="fx-modal-title">${state.editingDiariaId ? 'Editar diária' : 'Nova diária'}</div>
+            <button class="fx-close-btn" id="fx-diaria-close">✕</button>
+          </div>
+          <div class="fx-field">
+            <label class="fx-field-label">Data</label>
+            <input type="date" class="fx-input" id="dar-data" value="${f.data}">
+          </div>
+          <div class="fx-field">
+            <label class="fx-field-label">Motorista</label>
+            <select class="fx-select" id="dar-motorista">
+              ${state.drivers.map(d=>`<option value="${d}" ${f.motoristaNome===d?'selected':''}>${d}</option>`).join("")}
+            </select>
+          </div>
+          <div class="fx-field">
+            <label class="fx-field-label">Valor da diária (R$)</label>
+            <input type="number" step="0.01" class="fx-input" id="dar-valor" placeholder="0,00" value="${f.valor}">
+          </div>
+          <div class="fx-field">
+            <label class="fx-field-label">Observação (opcional)</label>
+            <input type="text" class="fx-input" id="dar-desc" placeholder="Ex: Viagem São Paulo..." value="${escapeAttr(f.descricao)}">
+          </div>
+          ${isFinance ? `
+          <div class="fx-field">
+            <label class="fx-field-label">Status</label>
+            <div class="fx-toggle-group">
+              <button type="button" class="fx-toggle-btn ${f.pago?'sel-paid':''}" id="dar-pago-sim">Pago</button>
+              <button type="button" class="fx-toggle-btn ${!f.pago?'sel-unpaid':''}" id="dar-pago-nao">Pendente</button>
+            </div>
+          </div>` : ""}
+          <button class="fx-save-btn" id="dar-save">${state.editingDiariaId ? 'Salvar' : 'Registrar diária'}</button>
+        </div>
+      </div>`;
+  }
+
+  function bindDiariaModalEvents() {
+    document.getElementById("fx-diaria-overlay").addEventListener("click", e => { if (e.target.id==="fx-diaria-overlay") closeDiariaModal(); });
+    document.getElementById("fx-diaria-close").addEventListener("click", closeDiariaModal);
+    document.getElementById("dar-data").addEventListener("input", e => state.diariaForm.data = e.target.value);
+    document.getElementById("dar-motorista").addEventListener("change", e => state.diariaForm.motoristaNome = e.target.value);
+    document.getElementById("dar-valor").addEventListener("input", e => state.diariaForm.valor = e.target.value);
+    document.getElementById("dar-desc").addEventListener("input", e => state.diariaForm.descricao = e.target.value);
+    document.getElementById("dar-pago-sim")?.addEventListener("click", () => { state.diariaForm.pago = true; render(); });
+    document.getElementById("dar-pago-nao")?.addEventListener("click", () => { state.diariaForm.pago = false; render(); });
+    document.getElementById("dar-save").addEventListener("click", saveDiariaForm);
+  }
+
+  function pinScreenHtml() {
+    const dots = [0, 1, 2, 3].map(i => `<div class="fx-pin-dot ${i < state.pinInput.length ? 'filled' : ''}"></div>`).join("");
+    const keys = ["1","2","3","4","5","6","7","8","9","","0","⌫"];
+    return `
+      <div class="fx-overlay center" id="fx-pin-overlay">
+        <div class="fx-modal center-modal" id="fx-pin-modal" style="max-width:320px;">
+          <div class="fx-modal-head">
+            <div class="fx-modal-title">Modo financeiro</div>
+            <button class="fx-close-btn" id="fx-pin-close">✕</button>
+          </div>
+          <div style="text-align:center; font-size:13px; color:var(--text-dim);">Digite o PIN de 4 dígitos</div>
+          <div class="fx-pin-dots">${dots}</div>
+          <div class="fx-pin-grid">
+            ${keys.map(k => {
+              if (k === "") return `<div></div>`;
+              if (k === "⌫") return `<button class="fx-pin-key erase" id="fx-pin-erase">⌫</button>`;
+              return `<button class="fx-pin-key" data-digit="${k}">${k}</button>`;
+            }).join("")}
+          </div>
+          <div class="fx-pin-error">${state.pinError}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function bindPinScreenEvents() {
+    const overlay = document.getElementById("fx-pin-overlay");
+    overlay.addEventListener("click", (ev) => { if (ev.target === overlay) closePinScreen(); });
+    document.getElementById("fx-pin-close").addEventListener("click", closePinScreen);
+    document.querySelectorAll("[data-digit]").forEach(btn => {
+      btn.addEventListener("click", () => pressPinKey(btn.dataset.digit));
+    });
+    document.getElementById("fx-pin-erase").addEventListener("click", erasePinKey);
+  }
+
+  async function emitirNFSe(entry) {
+    showToast("Enviando para prefeitura... aguarde.");
+    try {
+      const resp = await fetch("/.netlify/functions/proxy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "emitir_nfse",
+          dados: {
+            cliente: entry.cliente || "",
+            cnpjCliente: entry.cnpjCliente || "",
+            valor: entry.valor || "0",
+            servico: entry.servico || "Elevacao de carga",
+            data: entry.data || new Date().toISOString().split("T")[0]
+          }
+        })
+      });
+      const data = await resp.json();
+      if (data.ok) {
+        if (data.temErro) {
+          showToast("Prefeitura retornou erro — verifique o portal NFS-e");
+        } else if (data.temNumeroNF) {
+          showToast("\u2713 Nota fiscal emitida com sucesso!");
+          await saveEntryToDb(entry.id, { ...entry, notaEmitida: true, numeroRps: data.numeroRps });
+        } else {
+          showToast("Enviado! Verifique o portal NFS-e para confirmar.");
+          await saveEntryToDb(entry.id, { ...entry, notaEmitida: true, numeroRps: data.numeroRps });
+        }
+      } else {
+        showToast("Erro: " + (data.error || "tente novamente"));
+      }
+    } catch (e) {
+      showToast("Erro de conex\u00e3o ao gerar NFS-e.");
+    }
+  }
+
+  async function marcarNotaEmitida(entry) {
+    await saveEntryToDb(entry.id, { ...entry, notaEmitida: !entry.notaEmitida });
+    showToast(!entry.notaEmitida ? "\u2713 Nota marcada como emitida!" : "Nota desmarcada.");
+  }
+
+  function escapeHtml(str) {
+    if (!str) return "";
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+  function escapeAttr(str) {
+    if (!str) return "";
+    return String(str).replace(/"/g, "&quot;");
+  }
+
+  loadAll();
+})();
+</script>
+
+</body>
+</html>
