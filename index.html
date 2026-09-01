@@ -2773,7 +2773,7 @@
   }
 
   async function emitirNFSe(entry) {
-    showToast("Gerando NFS-e... aguarde.");
+    showToast("Enviando para prefeitura... aguarde.");
     try {
       const resp = await fetch("/.netlify/functions/proxy", {
         method: "POST",
@@ -2791,10 +2791,17 @@
       });
       const data = await resp.json();
       if (data.ok) {
-        showToast("NFS-e gerada! N\u00ba RPS: " + data.numeroRps);
-        await saveEntryToDb(entry.id, { ...entry, notaEmitida: true, numeroRps: data.numeroRps });
+        if (data.temErro) {
+          showToast("Prefeitura retornou erro — verifique o portal NFS-e");
+        } else if (data.temNumeroNF) {
+          showToast("\u2713 Nota fiscal emitida com sucesso!");
+          await saveEntryToDb(entry.id, { ...entry, notaEmitida: true, numeroRps: data.numeroRps });
+        } else {
+          showToast("Enviado! Verifique o portal NFS-e para confirmar.");
+          await saveEntryToDb(entry.id, { ...entry, notaEmitida: true, numeroRps: data.numeroRps });
+        }
       } else {
-        showToast("Erro ao gerar NFS-e: " + (data.error || "tente novamente"));
+        showToast("Erro: " + (data.error || "tente novamente"));
       }
     } catch (e) {
       showToast("Erro de conex\u00e3o ao gerar NFS-e.");
